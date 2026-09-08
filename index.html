@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perchero — Ropa vintage de segunda mano</title>
+
+<!-- MERCADOPAGO SDK V2 (Librería principal) -->
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ========================================================================= */
+  /* CSS INTACTO */
+  /* ========================================================================= */
+  :root{ --paper:#F2EDE4; --paper-2:#E9E1D2; --ink:#211C1B; --denim:#3B5773; --denim-dark:#2A3F54; --marigold:#E8A33D; --cherry:#C23B4B; --moss:#5C6B4A; --line: rgba(33,28,27,0.14); --card: #FBF8F2; --radius: 3px; --shadow: 0 2px 0 rgba(33,28,27,0.06); font-size: 16px; }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;} body{background:var(--paper);color:var(--ink);font-family:'Work Sans', sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:0.5;background-image:radial-gradient(rgba(33,28,27,0.035) 1px, transparent 1px);background-size: 3px 3px;z-index:0;}
+  h1,h2,h3,.display{font-family:'Archivo Black', sans-serif;text-transform:uppercase;letter-spacing:0.01em;line-height:1.05;margin:0;}
+  .mono{ font-family:'Space Mono', monospace; } a{color:inherit;} button{font-family:inherit;cursor:pointer;} #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+  header.topbar{position:sticky; top:0; z-index:50;background:var(--paper);border-bottom:2px solid var(--ink);}
+  .topbar-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 20px;}
+  .logo{font-family:'Archivo Black', sans-serif;font-size:26px;letter-spacing:-0.01em;display:flex; align-items:center; gap:8px;cursor:pointer; user-select:none;flex-shrink:0;}
+  .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--cherry);display:inline-block;}
+  .searchbar{flex:1;display:flex; align-items:center;background:var(--card);border:2px solid var(--ink);border-radius:20px;padding:8px 16px;gap:8px;max-width:520px;}
+  .searchbar input{border:none;background:transparent;outline:none;font-family:'Work Sans';font-size:14.5px;flex:1;color:var(--ink);} .searchbar input::placeholder{color:rgba(33,28,27,0.45);}
+  .nav-actions{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0;}
+  .btn{border:2px solid var(--ink);background:transparent;padding:9px 16px;border-radius:20px;font-weight:600;font-size:13.5px;text-transform:uppercase;letter-spacing:0.03em;transition:transform .12s ease, background .12s ease, color .12s ease;white-space:nowrap;}
+  .btn:hover{transform:translateY(-1px);} .btn-solid{background:var(--ink);color:var(--paper);} .btn-solid:hover{background:var(--denim-dark);border-color:var(--denim-dark);} .btn-cherry{background:var(--cherry);color:#fff;border-color:var(--cherry);} .btn-cherry:hover{background:#a92f3d;} .btn-ghost{border-color:transparent;padding:9px 10px;}
+  .icon-btn{position:relative;width:38px;height:38px;border-radius:50%;border:2px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .badge{position:absolute; top:-6px; right:-6px;background:var(--cherry); color:#fff;font-family:'Space Mono'; font-size:10px; font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);}
+  nav.subnav{border-bottom:1px solid var(--line);background:var(--paper-2);}
+  .subnav-inner{max-width:1180px;margin:0 auto;padding:9px 20px;display:flex; gap:22px; overflow-x:auto;} .subnav-inner button{background:none;border:none;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:rgba(33,28,27,0.68); padding:4px 0; white-space:nowrap;border-bottom:2px solid transparent;} .subnav-inner button:hover, .subnav-inner button.active{color:var(--ink);border-bottom-color:var(--cherry);}
+  main{flex:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; width:100%;}
+  .tag{position:relative;display:inline-flex; align-items:center; gap:6px;background:var(--marigold);color:var(--ink);font-family:'Space Mono'; font-weight:700; font-size:12px;padding:4px 10px 4px 16px;border-radius:2px 8px 8px 2px;box-shadow: var(--shadow);} .tag::before{content:"";position:absolute; left:6px; top:50%; transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--paper); border:1px solid rgba(33,28,27,0.4);} .tag.tag-cherry{background:var(--cherry);color:#fff;} .tag.tag-cherry::before{background:var(--paper);} .tag.tag-denim{background:var(--denim);color:#fff;} .tag.tag-denim::before{background:var(--paper);} .tag.tag-ghost{background:var(--card); border:1.5px solid var(--ink);}
+  .hero{display:grid; grid-template-columns: 1.1fr 1fr; gap:36px;align-items:center; padding:20px 0 44px;} .hero h1{font-size:52px;} .hero h1 .accent{color:var(--cherry);} .hero p.lede{font-size:16px;max-width:440px;margin:16px 0 22px;line-height:1.5;color:rgba(33,28,27,0.75);} .hero-ctas{display:flex;gap:12px;} .hero-stats{display:flex;gap:26px;margin-top:26px;} .hero-stats div{font-family:'Space Mono';} .hero-stats .num{font-size:22px;font-weight:700;} .hero-stats .lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:rgba(33,28,27,0.6);} .hero-visual{position:relative; height:340px;} .hero-card{position:absolute; width:190px; background:var(--card);border:2px solid var(--ink); border-radius:var(--radius);box-shadow:5px 5px 0 var(--ink);padding:8px; overflow:hidden;} .hero-card .sketch-svg{width:100%;height:180px;display:block;border-radius:1px;} .hero-card .hc-label{font-family:'Space Mono';font-size:11px;margin-top:6px;font-weight:700;} .hero-card.c1{top:0; left:40px; transform:rotate(-7deg); z-index:2;} .hero-card.c2{top:60px; left:220px; transform:rotate(5deg); z-index:3;} .hero-card.c3{top:150px; left:70px; transform:rotate(3deg); z-index:1;}
+  .browse-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;} .browse-head h2{font-size:22px;} .result-count{font-family:'Space Mono';font-size:12.5px;color:rgba(33,28,27,0.6);} .browse-layout{display:grid; grid-template-columns: 220px 1fr; gap:30px; margin-top:18px;} .filters{border:2px solid var(--ink); background:var(--card);border-radius:var(--radius); padding:18px; height:max-content;position:sticky; top:110px;} .filter-group{margin-bottom:20px;} .filter-group:last-child{margin-bottom:0;} .filter-title{font-family:'Space Mono';font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;color:var(--denim-dark);} .swatches{display:flex;flex-wrap:wrap;gap:8px;} .swatch{width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);cursor:pointer; position:relative;} .swatch.selected::after{content:"";position:absolute;inset:-5px;border:2px solid var(--cherry);border-radius:50%;} .chip-row{display:flex;flex-wrap:wrap;gap:6px;} .chip{border:1.5px solid var(--ink); background:transparent; border-radius:14px;padding:5px 11px; font-size:12px; font-weight:600;} .chip.selected{background:var(--ink);color:var(--paper);} select.filter-select{width:100%; padding:8px 10px; border:1.5px solid var(--ink); border-radius:4px;background:var(--paper); font-family:'Work Sans'; font-size:13px; color:var(--ink);} .clear-filters{margin-top:16px; font-size:12px; text-decoration:underline; background:none;border:none;color:var(--denim-dark);font-weight:600;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:20px;} .card{background:var(--card); border:2px solid var(--ink); border-radius:var(--radius);overflow:hidden; cursor:pointer; box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .15s ease;display:flex; flex-direction:column;} .card:hover{transform:translateY(-3px); box-shadow:4px 6px 0 rgba(33,28,27,0.18);} .card-img{position:relative;aspect-ratio:4/5;overflow:hidden;background:#FBF8F2;} .card-img .sketch-svg{width:100%;height:100%;display:block;} .card-img .tag{position:absolute; top:8px; left:8px;} .card-body{padding:10px 12px 14px;} .card-body .brand{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(33,28,27,0.55);font-weight:600;} .card-body .title{font-size:14.5px;font-weight:600;margin:2px 0 8px;line-height:1.25;} .card-meta{display:flex;align-items:center;justify-content:space-between;} .price{font-family:'Space Mono';font-weight:700;font-size:15px;} .size-pill{font-family:'Space Mono'; font-size:11px; border:1.5px solid var(--ink);border-radius:10px; padding:2px 8px;} .empty-state{text-align:center; padding:70px 20px; border:2px dashed var(--ink); border-radius:var(--radius);} .empty-state h3{font-size:20px;margin-bottom:8px;} .empty-state p{color:rgba(33,28,27,0.65);margin-bottom:16px;}
+  .product-view{display:grid; grid-template-columns:1fr 1fr; gap:44px;} .pv-gallery-main{border:2px solid var(--ink); border-radius:var(--radius); overflow:hidden;aspect-ratio:4/5; background:#ddd; box-shadow:6px 6px 0 rgba(33,28,27,0.12);} .pv-gallery-main .sketch-svg{width:100%;height:100%;display:block;} .pv-thumbs{display:flex;gap:8px;margin-top:10px;} .pv-thumbs .sketch-svg{width:64px;height:76px;border:2px solid var(--ink);border-radius:2px;cursor:pointer;display:block;} .pv-info .brand{font-family:'Space Mono';text-transform:uppercase;letter-spacing:0.05em;color:var(--denim-dark);font-weight:700;font-size:13px;} .pv-info h1{font-size:32px;margin:8px 0 14px;} .pv-price{font-family:'Space Mono';font-size:30px;font-weight:700;margin-bottom:16px;} .pv-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;} .pv-desc{line-height:1.6;font-size:14.5px;color:rgba(33,28,27,0.85);margin-bottom:24px;} .pv-specs{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;margin-bottom:22px;} .pv-spec-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px;} .pv-spec-row span:first-child{color:rgba(33,28,27,0.55);text-transform:uppercase;font-size:11.5px;letter-spacing:0.04em;font-weight:600;} .pv-seller{display:flex;align-items:center;gap:10px;margin-bottom:24px;} .avatar{width:38px;height:38px;border-radius:50%;background:var(--denim);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Archivo Black';font-size:14px;flex-shrink:0;} .pv-actions{display:flex;gap:12px;} .pv-actions .btn{flex:1;justify-content:center;display:flex;padding:14px;font-size:14px;}
+  .form-shell{max-width:460px;margin:10px auto 0;background:var(--card);border:2px solid var(--ink);border-radius:var(--radius);padding:32px 30px;box-shadow:6px 6px 0 rgba(33,28,27,0.1);} .form-shell.wide{max-width:760px;} .form-shell h2{font-size:24px;margin-bottom:6px;} .form-sub{color:rgba(33,28,27,0.6);font-size:13.5px;margin-bottom:22px;} .field{margin-bottom:16px;} .field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;color:var(--denim-dark);} .field .req{color:var(--cherry);} .field input[type=text], .field input[type=email], .field input[type=password], .field input[type=number], .field textarea, .field select{width:100%; border:1.5px solid var(--ink); border-radius:4px; padding:10px 12px;font-family:'Work Sans'; font-size:14px; background:var(--paper); color:var(--ink);} .field textarea{resize:vertical;min-height:90px;} .field .err{color:var(--cherry);font-size:12px;margin-top:5px;font-weight:600;} .field.has-err input, .field.has-err select, .field.has-err textarea{border-color:var(--cherry);} .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .form-shell .btn-solid{width:100%;padding:13px;justify-content:center;display:flex;font-size:14px;margin-top:6px;} .switch-link{text-align:center;margin-top:16px;font-size:13px;color:rgba(33,28,27,0.65);} .switch-link button{background:none;border:none;text-decoration:underline;font-weight:700;color:var(--ink);padding:0;}
+  .photo-upload{border:2px dashed var(--ink); border-radius:var(--radius); padding:22px;text-align:center; cursor:pointer; background:var(--paper);} .photo-upload:hover{background:var(--paper-2);} .photo-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;} .photo-chip{width:56px;height:56px;border:2px solid var(--ink);border-radius:3px;background:linear-gradient(135deg,var(--marigold),var(--cherry));display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Space Mono';font-size:10px;font-weight:700;}
+  .color-picker{display:flex;flex-wrap:wrap;gap:10px;} .color-picker .swatch{width:30px;height:30px;}
+  .cart-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:30px;align-items:start;} .cart-item{display:flex;gap:14px;border:2px solid var(--ink);border-radius:var(--radius);background:var(--card);padding:12px;margin-bottom:14px;} .cart-item .sketch-svg{width:74px;height:90px;border-radius:2px;border:1.5px solid var(--ink);display:block;flex-shrink:0;} .cart-item-info{flex:1;} .cart-item-info .brand{font-size:10.5px;text-transform:uppercase;color:rgba(33,28,27,0.55);font-weight:700;} .cart-item-info .title{font-weight:600;font-size:14px;margin:2px 0 6px;} .cart-item-meta{display:flex;gap:8px;font-size:11.5px;} .remove-link{background:none;border:none;color:var(--cherry);font-size:12px;font-weight:700;text-decoration:underline;margin-top:8px;} .cart-item-price{font-family:'Space Mono';font-weight:700;font-size:15px;white-space:nowrap;} .summary-box{border:2px solid var(--ink);border-radius:var(--radius);background:var(--card);padding:20px;position:sticky;top:110px;} .summary-row{display:flex;justify-content:space-between;font-size:13.5px;padding:7px 0;} .summary-row.total{border-top:1.5px solid var(--ink);margin-top:8px;padding-top:12px;font-family:'Space Mono';font-weight:700;font-size:16px;} .steps{display:flex;gap:8px;margin-bottom:26px;justify-content:center;} .step-dot{display:flex;align-items:center;gap:8px;font-family:'Space Mono';font-size:11.5px;font-weight:700;color:rgba(33,28,27,0.4);} .step-dot.active{color:var(--ink);} .step-dot .n{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;} .radio-card{border:1.5px solid var(--ink);border-radius:6px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13.5px;font-weight:600;} .radio-card.selected{background:var(--paper-2);border-color:var(--denim);} .confirm-box{text-align:center;padding:50px 20px;} .confirm-box .stamp{width:90px;height:90px;border-radius:50%;border:4px solid var(--moss);color:var(--moss);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:40px; transform:rotate(-8deg);}
+  .profile-head{display:flex;align-items:center;gap:16px;margin-bottom:26px;} .profile-head .avatar{width:64px;height:64px;font-size:22px;} .profile-tabs{display:flex;gap:20px;border-bottom:1.5px solid var(--line);margin-bottom:20px;} .profile-tabs button{background:none;border:none;padding:10px 2px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:rgba(33,28,27,0.55);border-bottom:2px solid transparent;} .profile-tabs button.active{color:var(--ink);border-color:var(--cherry);}
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px);background:var(--ink); color:var(--paper); padding:13px 22px; border-radius:24px;font-size:13.5px; font-weight:600; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:transform .3s ease; display:flex; align-items:center; gap:10px;} .toast.show{transform:translateX(-50%) translateY(0);} .toast .dot{width:8px;height:8px;border-radius:50%;background:var(--marigold);}
+  footer{border-top:2px solid var(--ink); padding:26px 20px; text-align:center; font-size:12px; color:rgba(33,28,27,0.55);} footer .logo{justify-content:center; font-size:18px; margin-bottom:8px;}
+  @media (max-width:880px){ .hero{grid-template-columns:1fr;} .hero-visual{height:260px;} .browse-layout{grid-template-columns:1fr;} .filters{position:static;} .product-view{grid-template-columns:1fr;} .cart-layout{grid-template-columns:1fr;} .searchbar{display:none;} .field-row{grid-template-columns:1fr;} .hero h1{font-size:36px;} }
+  .real-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 2px; }
+  #wallet_container { margin-top: 15px; width: 100%; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// =========================================================================
+// 🔑 CONFIGURACIÓN DE CLAVES (API KEYS) - ¡COMPLETÁ ESTO!
+// =========================================================================
+const API_KEY_GOOGLE_MAPS = "";
+const API_KEY_MERCADO_PAGO = "";
+
+
+// --- 1. Cargar Google Maps Dinámicamente ---
+if (API_KEY_GOOGLE_MAPS !== "TU_KEY_DE_GOOGLE_ACA") {
+  const scriptMaps = document.createElement('script');
+  scriptMaps.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY_GOOGLE_MAPS}&libraries=places`;
+  document.head.appendChild(scriptMaps);
+} else {
+  console.warn("Falta completar la API Key de Google Maps en la configuración.");
+}
+
+// --- 2. Inicializar MercadoPago ---
+let mp = null;
+try {
+  if (API_KEY_MERCADO_PAGO !== "TEST-TU_PUBLIC_KEY_DE_MERCADOPAGO") {
+    mp = new MercadoPago(API_KEY_MERCADO_PAGO, { locale: 'es-UY' });
+  }
+} catch(e) {
+  console.warn("Fallo al inicializar MercadoPago. Revisá tu API Key.");
+}
+
+
+// ============================= VARIABLES Y ESTADO ============================= 
+let state = {
+  route: '#/',
+  user: null, 
+  cart: [],
+  query: '',
+  filters: { color:null, size:null, brand:null, condition:null },
+  currentProductId: null,
+  toastMsg: null,
+  checkoutStep: 1,
+  checkoutAddress: '', 
+  order: null,
+};
+
+const COLORS = [ {name:'Negro', hex:'#211C1B'}, {name:'Blanco', hex:'#F4F1EA'}, {name:'Beige', hex:'#D9C7A3'}, {name:'Azul', hex:'#3B5773'}, {name:'Verde', hex:'#5C6B4A'}, {name:'Rojo', hex:'#C23B4B'}, {name:'Mostaza', hex:'#E8A33D'}, {name:'Rosa', hex:'#D98CA0'}, {name:'Marrón', hex:'#7A5230'} ];
+const SIZES = ['XS','S','M','L','XL','XXL'];
+const CONDITIONS = ['Nuevo con Etiqueta','Sin uso','Buen estado','Usado','Con detalles'];
+const CATEGORIES = ['Remeras','Camperas','Pantalones','Vestidos','Buzos','Accesorios','Calzado'];
+let listings = [];
+
+
+// ============================= CONEXIÓN AL BACKEND (PHP) =============================
+async function checkUserSession() {
+  try { const res = await fetch('api.php?action=me'); const data = await res.json(); if(data.success) { state.user = data.user; } } catch(e) {}
+  render();
+}
+async function fetchListings() {
+  try { const res = await fetch('api.php?action=get_products'); listings = await res.json(); render(); } catch(e) {}
+}
+checkUserSession(); fetchListings();
+
+
+/* ============================= BOCETOS SVG (Fallback) ============================= */
+function hashSeed(str){ let h = 0; for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; } return h % 10000; }
+const CATEGORY_TO_TYPE = { 'Remeras':'tshirt', 'Camperas':'jacket', 'Pantalones':'pants', 'Vestidos':'dress', 'Buzos':'sweater', 'Accesorios':'belt', 'Calzado':'shoes' };
+function classifyType(title, category){
+  const t = title.toLowerCase();
+  if(t.includes('campera') || t.includes('cuero') && t.includes('bomber')) return 'jacket';
+  if(t.includes('pollera')) return 'skirt';
+  if(t.includes('vestido')) return 'dress';
+  if(t.includes('pantalon') || t.includes('cargo') || t.includes('corderoy')) return 'pants';
+  if(t.includes('chaleco')) return 'vest';
+  if(t.includes('zapatilla')) return 'shoes';
+  if(t.includes('cinturon') || t.includes('cinturón')) return 'belt';
+  if(t.includes('buzo') || t.includes('sweater') || t.includes('hoodie')) return 'sweater';
+  if(t.includes('remera') || t.includes('camisa')) return 'tshirt';
+  return CATEGORY_TO_TYPE[category] || 'tshirt';
+}
+const SKETCHES = {
+  tshirt: { d:'M108,58 L132,42 Q150,32 168,42 L192,58 L232,92 L204,124 L192,108 L192,302 L108,302 L108,108 L96,124 L68,92 Z', extra:'<path d="M132,42 Q150,58 168,42" fill="none" stroke="#211C1B" stroke-width="2.5"/>' },
+  jacket: { d:'M104,64 L128,40 L150,54 L172,40 L196,64 L238,96 L208,130 L196,112 L196,300 L104,300 L104,112 L92,130 L62,96 Z', extra:'<path d="M150,54 L150,300" fill="none" stroke="#211C1B" stroke-width="2.5" stroke-dasharray="3 6"/><path d="M128,40 L150,54 L172,40" fill="none" stroke="#211C1B" stroke-width="2.5"/><path d="M115,140 L145,140M115,175 L145,175M155,140 L185,140M155,175 L185,175" stroke="#211C1B" stroke-width="1.5" opacity="0.5"/>' },
+  dress: { d:'M112,50 L138,34 Q150,28 162,34 L188,50 L214,86 L194,110 L186,94 L186,150 L232,300 L68,300 L114,150 L114,94 L106,110 L86,86 Z', extra:'<path d="M138,34 Q150,50 162,34" fill="none" stroke="#211C1B" stroke-width="2.5"/><path d="M96,200 L204,200" fill="none" stroke="#211C1B" stroke-width="1.5" stroke-dasharray="2 8" opacity="0.55"/>' },
+  skirt: { d:'M96,86 L204,86 L204,102 L248,300 L52,300 L96,102 Z', extra:'<path d="M100,100 L200,100" stroke="#211C1B" stroke-width="1.5" opacity="0.5"/><path d="M85,180 L215,175M78,240 L222,232" stroke="#211C1B" stroke-width="1.3" opacity="0.4"/>' },
+  pants: { d:'M92,58 L208,58 L208,92 L172,92 L178,300 L138,300 L150,160 L142,300 L102,300 L108,92 L92,92 Z', extra:'<path d="M92,80 L208,80" stroke="#211C1B" stroke-width="1.5" opacity="0.5"/><path d="M150,92 L150,155" stroke="#211C1B" stroke-width="1.5" stroke-dasharray="2 6" opacity="0.5"/>' },
+  sweater: { d:'M106,62 Q150,36 194,62 L236,98 L206,128 L194,110 L194,300 L106,300 L106,110 L94,128 L64,98 Z', extra:'<path d="M120,72 Q150,90 180,72" fill="none" stroke="#211C1B" stroke-width="2.5"/><path d="M112,150 L188,150M112,180 L188,180M112,210 L188,210" stroke="#211C1B" stroke-width="1.2" opacity="0.35"/>' },
+  vest: { d:'M116,60 L150,80 L184,60 L206,64 L196,140 L206,300 L94,300 L104,140 L94,64 Z', extra:'<path d="M150,80 L150,220" fill="none" stroke="#211C1B" stroke-width="1.5" stroke-dasharray="2 7" opacity="0.5"/>' },
+  shoes: { d:'M40,232 Q40,200 78,196 L150,178 Q182,168 206,182 L252,210 Q268,218 266,238 L264,258 L44,258 Z', extra:'<path d="M78,196 L96,224M104,192 L118,222M130,186 L142,218M156,180 L166,214" stroke="#211C1B" stroke-width="2" opacity="0.6"/><path d="M44,258 L264,258" stroke="#211C1B" stroke-width="4" opacity="0.7"/>' },
+  belt: { d:'M40,160 L260,160 L260,196 L40,196 Z', extra:'<rect x="128" y="150" width="44" height="56" rx="4" fill="none" stroke="#211C1B" stroke-width="2.5"/><circle cx="150" cy="178" r="5" fill="none" stroke="#211C1B" stroke-width="2"/><circle cx="70" cy="178" r="3" fill="none" stroke="#211C1B" stroke-width="1.5" opacity="0.6"/><circle cx="90" cy="178" r="3" fill="none" stroke="#211C1B" stroke-width="1.5" opacity="0.6"/><circle cx="210" cy="178" r="3" fill="none" stroke="#211C1B" stroke-width="1.5" opacity="0.6"/><circle cx="230" cy="178" r="3" fill="none" stroke="#211C1B" stroke-width="1.5" opacity="0.6"/>' },
+};
+function notebookLines(){
+  let lines = '';
+  for(let y=36; y<360; y+=32){ lines += `<line x1="0" y1="${y}" x2="300" y2="${y}" stroke="#211C1B" stroke-width="1" opacity="0.05"/>`; }
+  return lines;
+}
+
+function renderVisual(item, variant) {
+  variant = variant || 0;
+  if (item.photos_urls && item.photos_urls.length > 0) {
+    const src = item.photos_urls[variant] || item.photos_urls[0];
+    return `<img src="uploads/${src}" alt="${esc(item.title)}" class="real-img sketch-svg">`;
+  }
+  const type = classifyType(item.title, item.category);
+  const sk = SKETCHES[type] || SKETCHES.tshirt;
+  const colorObj = COLORS.find(c=>c.name===item.color);
+  const colorHex = colorObj ? colorObj.hex : '#3B5773';
+  const lock = (hashSeed(item.title + item.id) + variant*137) % 10000;
+  const uid = 'sk' + item.id + '_' + variant + '_' + lock;
+  return `<svg viewBox="0 0 300 360" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" class="sketch-svg" role="img" aria-label="Boceto de ${esc(item.title)}">
+    <defs>
+      <filter id="wob_${uid}" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="${lock}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+      <pattern id="hatch_${uid}" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="#211C1B" stroke-width="1"/></pattern>
+      <clipPath id="clip_${uid}"><path d="${sk.d}"/></clipPath>
+    </defs>
+    <rect width="300" height="360" fill="#FBF8F2"/>${notebookLines()}
+    <g filter="url(#wob_${uid})">
+      <path d="${sk.d}" fill="${colorHex}" fill-opacity="0.24" stroke="#211C1B" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+      ${sk.extra || ''}
+      <rect x="0" y="0" width="300" height="360" fill="url(#hatch_${uid})" clip-path="url(#clip_${uid})" opacity="0.13"/>
+    </g>
+  </svg>`;
+}
+
+
+/* ============================= HELPERS ============================= */
+function fmt(n){ return '$U ' + n.toLocaleString('es-UY'); }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function showToast(msg){
+  state.toastMsg = msg; render();
+  setTimeout(()=>{ state.toastMsg = null; const t = document.querySelector('.toast'); if(t) t.classList.remove('show'); setTimeout(render, 250); }, 2200);
+}
+function navigate(route){ state.route = route; window.scrollTo(0,0); render(); }
+function esc(s){ const d=document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function toggleCart(id, forceAdd){
+  const l = listings.find(x=>x.id===id);
+  const idx = state.cart.findIndex(c=>c.id===id);
+  if(idx>-1 && !forceAdd){ state.cart.splice(idx,1); showToast('Se quitó del carrito'); }
+  else if(idx===-1){ state.cart.push(l); if(!forceAdd) showToast('Se agregó al carrito'); render(); }
+  else { render(); }
+}
+function filteredListings(){
+  return listings.filter(l=>{
+    if(state.query && !(l.title+' '+l.brand+' '+l.category).toLowerCase().includes(state.query.toLowerCase())) return false;
+    if(state.filters.color && l.color !== state.filters.color) return false;
+    if(state.filters.size && l.size !== state.filters.size) return false;
+    if(state.filters.condition && l.condition !== state.filters.condition) return false;
+    if(state.filters.brand && !l.brand.toLowerCase().includes(state.filters.brand.toLowerCase())) return false;
+    return true;
+  });
+}
+function escapeHtmlRender(encodedStr) {
+  return decodeURIComponent(encodedStr);
+}
+
+
+/* ============================= COMPONENTES ============================= */
+function Header(){
+  const cartCount = state.cart.length;
+  return `
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo" onclick="navigate('#/')"><span class="dot"></span>PERCHERO</div>
+      <div class="searchbar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Buscar remeras, marcas, camperas..." value="${esc(state.query)}" onkeydown="if(event.key==='Enter'){state.query=this.value; navigate('#/buscar');}">
+      </div>
+      <div class="nav-actions">
+        ${state.user ? `<button class="btn btn-cherry" onclick="navigate('#/vender')">+ Publicar</button>` : `<button class="btn" onclick="navigate('#/vender')">+ Publicar</button>`}
+        <button class="icon-btn" title="Carrito" onclick="navigate('#/carrito')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          ${cartCount ? `<span class="badge">${cartCount}</span>` : ''}
+        </button>
+        ${state.user ? `
+          <div class="avatar" style="cursor:pointer;" onclick="navigate('#/perfil')" title="Mi perfil">${initials(state.user.name)}</div>
+        ` : `<button class="btn btn-solid" onclick="navigate('#/login')">Ingresar</button>`}
+      </div>
+    </div>
+    <nav class="subnav"><div class="subnav-inner">
+      <button class="${state.route==='#/'?'active':''}" onclick="navigate('#/')">Todo</button>
+      ${CATEGORIES.map(c=>`<button onclick="state.filters={color:null,size:null,brand:null,condition:null}; state.query='${c}'; navigate('#/buscar')">${c}</button>`).join('')}
+    </div></nav>
+  </header>`;
+}
+
+function Footer(){
+  return `<footer>
+    <div class="logo"><span class="dot"></span>PERCHERO</div>
+    <div>Prototipo funcional c/ MercadoPago, Maps API y Mails</div>
+  </footer>`;
+}
+
+function Toast(){
+  return state.toastMsg ? `<div class="toast" id="toastEl"><span class="dot"></span>${esc(state.toastMsg)}</div>` : '';
+}
+
+function ProductCard(l){
+  return `<div class="card" onclick="state.currentProductId=${l.id}; navigate('#/producto')">
+    <div class="card-img">
+      ${renderVisual(l, 0)}
+      <span class="tag ${l.condition==='Nuevo con Etiqueta'?'tag-cherry':''}">${l.condition==='Nuevo con Etiqueta'?'NUEVO':esc(l.condition)}</span>
+    </div>
+    <div class="card-body">
+      <div class="brand">${esc(l.brand)}</div>
+      <div class="title">${esc(l.title)}</div>
+      <div class="card-meta">
+        <span class="price">${fmt(l.price)}</span>
+        <span class="size-pill">${l.size}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+
+/* ============================= VISTAS PRINCIPALES ============================= */
+function ViewHome(){
+  const heroMock = {id:0, title:"Campera", brand:"Mock", category:"Camperas", color:"Azul", price:2000};
+  return `
+  <section class="hero">
+    <div>
+      <h1>Ropa con<br>historia,<br><span class="accent">no descartada.</span></h1>
+      <p class="lede">Compra y vende prendas vintage entre personas. Cada publicación lleva su ficha completa: color, talle, marca y estado.</p>
+      <div class="hero-ctas">
+        <button class="btn btn-solid" onclick="navigate('#/buscar')">Explorar prendas</button>
+        <button class="btn" onclick="navigate('#/vender')">Vender la mía</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="num">${listings.length}</div><div class="lbl">Prendas activas</div></div>
+        <div><div class="num">${new Set(listings.map(l=>l.seller_id)).size}</div><div class="lbl">Vendedores</div></div>
+        <div><div class="num">${CATEGORIES.length}</div><div class="lbl">Categorías</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card c1">${renderVisual(listings[0]||heroMock,0)}<div class="hc-label mono">$U ${fmt(listings[0]?.price||2400).replace('$U ','')}</div></div>
+      <div class="hero-card c2">${renderVisual(listings[1]||{...heroMock, category:"Vestidos", color:"Beige"},0)}<div class="hc-label mono">$U ${fmt(listings[1]?.price||1800).replace('$U ','')}</div></div>
+      <div class="hero-card c3">${renderVisual(listings[2]||{...heroMock, category:"Calzado", color:"Blanco"},0)}<div class="hc-label mono">$U ${fmt(listings[2]?.price||2100).replace('$U ','')}</div></div>
+    </div>
+  </section>
+  <section>
+    <div class="browse-head"><h2>Últimos artículos cargados</h2><span class="result-count">${listings.length} prendas totales</span></div>
+    <div class="grid">${listings.map(ProductCard).join('')}</div>
+  </section>`;
+}
+
+function ViewBuscar(){
+  const results = filteredListings();
+  const f = state.filters;
+  return `
+  <div class="browse-head">
+    <h2>${state.query ? 'Resultados para "'+esc(state.query)+'"' : 'Todas las prendas'}</h2>
+    <span class="result-count">${results.length} prendas</span>
+  </div>
+  <div class="browse-layout">
+    <aside class="filters">
+      <div class="filter-group">
+        <div class="filter-title">Color</div>
+        <div class="swatches">
+          ${COLORS.map(c=>`<div class="swatch ${f.color===c.name?'selected':''}" style="background:${c.hex}" title="${c.name}" onclick="state.filters.color = state.filters.color==='${c.name}'?null:'${c.name}'; render()"></div>`).join('')}
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Talle</div>
+        <div class="chip-row">
+          ${SIZES.map(s=>`<button class="chip ${f.size===s?'selected':''}" onclick="state.filters.size = state.filters.size==='${s}'?null:'${s}'; render()">${s}</button>`).join('')}
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Estado</div>
+        <div class="chip-row" style="flex-direction:column;align-items:flex-start;">
+          ${CONDITIONS.map(c=>`<button class="chip ${f.condition===c?'selected':''}" style="width:100%;text-align:left;" onclick="state.filters.condition = state.filters.condition==='${c}'?null:'${c}'; render()">${c}</button>`).join('')}
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Marca</div>
+        <input type="text" class="filter-select" placeholder="Ej: Levi's" value="${esc(f.brand||'')}" oninput="state.filters.brand=this.value; render()">
+      </div>
+      <button class="clear-filters" onclick="state.filters={color:null,size:null,brand:null,condition:null}; state.query=''; render()">Limpiar todo</button>
+    </aside>
+    <div>
+      ${results.length ? `<div class="grid">${results.map(ProductCard).join('')}</div>` : `
+        <div class="empty-state">
+          <h3>No encontramos nada con esos filtros</h3>
+          <p>Probá sacar algún filtro o buscar otra cosa.</p>
+          <button class="btn btn-solid" onclick="state.filters={color:null,size:null,brand:null,condition:null}; state.query=''; render()">Ver todo</button>
+        </div>
+      `}
+    </div>
+  </div>`;
+}
+
+function ViewProducto(){
+  const l = listings.find(x=>x.id===state.currentProductId);
+  if(!l) return `<div class="empty-state"><h3>Prenda no encontrada</h3><button class="btn btn-solid" onclick="navigate('#/')">Volver</button></div>`;
+  const inCart = state.cart.some(c=>c.id===l.id);
+  
+  const totalPhotos = l.photos_urls?.length > 0 ? l.photos_urls.length : (l.photos || 1);
+  const thumbs = Array.from({length: totalPhotos}).map((_,i)=>renderVisual(l, i));
+
+  return `
+  <div class="product-view">
+    <div>
+      <div class="pv-gallery-main" id="pvMainWrap">${renderVisual(l, 0)}</div>
+      <div class="pv-thumbs">${thumbs.map((t,i)=>`
+        <span onclick="document.getElementById('pvMainWrap').innerHTML=escapeHtmlRender('${encodeURIComponent(renderVisual(l, i))}')">${t}</span>
+      `).join('')}</div>
+    </div>
+    <div class="pv-info">
+      <div class="brand">${esc(l.brand)}</div>
+      <h1>${esc(l.title)}</h1>
+      <div class="pv-price">${fmt(l.price)}</div>
+      <div class="pv-tags">
+        <span class="tag tag-ghost">Talle ${l.size}</span>
+        <span class="tag tag-denim">${esc(l.color)}</span>
+        <span class="tag ${l.condition==='Nuevo con Etiqueta'?'tag-cherry':'tag-ghost'}">${esc(l.condition)}</span>
+      </div>
+      <p class="pv-desc">${esc(l.desc)}</p>
+      <div class="pv-specs">
+        <div class="pv-spec-row"><span>Marca</span><span>${esc(l.brand)}</span></div>
+        <div class="pv-spec-row"><span>Categoría</span><span>${esc(l.category)}</span></div>
+        <div class="pv-spec-row"><span>Talle</span><span>${l.size}</span></div>
+        <div class="pv-spec-row"><span>Color</span><span>${esc(l.color)}</span></div>
+        <div class="pv-spec-row"><span>Estado</span><span>${esc(l.condition)}</span></div>
+      </div>
+      <div class="pv-seller">
+        <div class="avatar">${initials(l.seller)}</div>
+        <div><div style="font-weight:600;font-size:13.5px;">${esc(l.seller)}</div><div style="font-size:11.5px;color:rgba(33,28,27,0.55);">Vendedor verificado</div></div>
+      </div>
+      <div class="pv-actions">
+        <button class="btn ${inCart?'':''}" style="border-color:var(--ink);" onclick="toggleCart(${l.id})">${inCart? 'Quitar del carrito' : 'Agregar al carrito'}</button>
+        <button class="btn btn-cherry" onclick="toggleCart(${l.id}, true); navigate('#/carrito')">Comprar ahora</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function ViewCarrito(){
+  const items = state.cart;
+  if(!items.length) return `<div class="empty-state"><h3>Carrito vacío</h3><p>Todavía no agregaste ninguna prenda.</p><button class="btn btn-solid" onclick="navigate('#/buscar')">Ir a explorar</button></div>`;
+  
+  const subtotal = items.reduce((s,i) => s + i.price, 0);
+  const fees = subtotal * 0.075;
+  const envio = 400;
+  const totalFinal = subtotal + fees + envio;
+
+  return `
+  <h2 style="font-size:26px;margin-bottom:20px;">Tu carrito</h2>
+  <div class="cart-layout">
+    <div>${items.map(i=>`
+      <div class="cart-item">
+        ${renderVisual(i, 0)}
+        <div class="cart-item-info">
+          <div class="brand">${esc(i.brand)}</div>
+          <div class="title">${esc(i.title)}</div>
+          <div class="cart-item-meta"><span class="tag tag-ghost">Talle ${i.size}</span></div>
+          <button class="remove-link" onclick="toggleCart(${i.id}); render()">Quitar</button>
+        </div>
+        <div class="cart-item-price">${fmt(i.price)}</div>
+      </div>`).join('')}
+    </div>
+    <div class="summary-box">
+      <div class="summary-row"><span>Subtotal prendas</span><span>${fmt(subtotal)}</span></div>
+      <div class="summary-row"><span>Cargo por servicio (7.5%)</span><span>${fmt(fees)}</span></div>
+      <div class="summary-row"><span>Envío</span><span>${fmt(envio)}</span></div>
+      <div class="summary-row total"><span>Total</span><span>${fmt(totalFinal)}</span></div>
+      <button class="btn btn-cherry" style="width:100%;margin-top:16px;" onclick="state.checkoutStep=1; navigate('#/checkout')">Ir a pagar</button>
+    </div>
+  </div>`;
+}
+
+
+// ============================= CHECKOUT Y PAGOS =============================
+function ViewCheckout(){
+  if(!state.user){
+    return `<div class="empty-state"><h3>Necesitás una cuenta</h3><p>Ingresá para seguir.</p><button class="btn btn-solid" onclick="navigate('#/login')">Ingresar</button></div>`;
+  }
+  const subtotal = state.cart.reduce((s,i)=>s+i.price,0);
+  const total = subtotal + (subtotal * 0.075) + 400;
+
+  if(state.checkoutStep===3){
+    return `<div class="confirm-box"><div class="stamp">✓</div><h2 style="font-size:26px;">¡Compra confirmada!</h2><p>Le avisamos al vendedor por mail para que prepare el envío.</p><button class="btn btn-solid" onclick="navigate('#/')">Volver al inicio</button></div>`;
+  }
+  
+  return `
+  <div class="form-shell wide">
+    <div class="steps">
+      <div class="step-dot ${state.checkoutStep>=1?'active':''}"><span class="n">1</span>Envío</div>
+      <div class="step-dot ${state.checkoutStep>=2?'active':''}"><span class="n">2</span>Pago</div>
+      <div class="step-dot ${state.checkoutStep>=3?'active':''}"><span class="n">3</span>Listo</div>
+    </div>
+    
+    ${state.checkoutStep===1 ? `
+      <h2>Dirección de envío</h2>
+      <div class="form-sub">Escribí tu dirección y seleccionala de la lista de Google Maps para validarla.</div>
+      <div class="field"><label>Dirección <span class="req">*</span></label>
+        <input type="text" id="ship_addr" placeholder="Empezá a escribir tu dirección...">
+      </div>
+      <button class="btn btn-solid" id="btn_continue_shipping" onclick="processShipping()">Continuar a pago</button>
+      <div class="err" id="err_address" style="display:none;margin-top:10px;">Tenés que elegir una dirección válida de la lista.</div>
+    ` : `
+      <h2>Pago seguro con MercadoPago</h2>
+      <div class="summary-box" style="position:static;margin:18px 0;">
+        <div class="summary-row total"><span>Total a pagar</span><span>${fmt(total)}</span></div>
+        <div style="font-size:12px;color:gray;margin-top:5px;">El envío se realizará a: ${esc(state.checkoutAddress)}</div>
+      </div>
+      <div id="wallet_container">Generando botón de pago...</div>
+    `}
+  </div>`;
+}
+
+let autocompleteInstance = null;
+function initGoogleMapsAutocomplete() {
+  const input = document.getElementById('ship_addr');
+  if (input) {
+    if (window.google && window.google.maps && window.google.maps.places) {
+      autocompleteInstance = new google.maps.places.Autocomplete(input, { types: ['address'] });
+    } else {
+      setTimeout(initGoogleMapsAutocomplete, 200);
+    }
+  }
+}
+
+function processShipping() {
+  const input = document.getElementById('ship_addr');
+  const place = autocompleteInstance ? autocompleteInstance.getPlace() : null;
+  
+  if (!place || !place.formatted_address) {
+    document.getElementById('err_address').style.display = 'block';
+    input.style.borderColor = 'var(--cherry)';
+    return;
+  }
+  
+  state.checkoutAddress = place.formatted_address;
+  state.checkoutStep = 2;
+  render();
+}
+
+async function initMercadoPagoWallet() {
+  if (state.checkoutStep !== 2) return;
+  const container = document.getElementById('wallet_container');
+  if (!container) return;
+
+  if (!mp) {
+    container.innerHTML = `<div class="err" style="color:var(--cherry);">No se pudo inicializar MercadoPago. Verificá la API KEY en la configuración.</div>`;
+    return;
+  }
+
+  const cartIds = state.cart.map(item => item.id);
+  try {
+    const res = await fetch('api.php?action=create_preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart_ids: cartIds, address: state.checkoutAddress })
+    });
+    
+    const data = await res.json();
+    if (!data.success) {
+      container.innerHTML = `<div class="err">Error creando pago: ${data.error}</div>`;
+      return;
+    }
+    
+    const preferenceId = data.preference_id;
+    const orderId = data.order_id;
+    container.innerHTML = ''; 
+
+    const bricksBuilder = mp.bricks();
+    bricksBuilder.create("wallet", "wallet_container", {
+      initialization: { preferenceId: preferenceId },
+      callbacks: {
+        onReady: () => {},
+        onSubmit: () => {},
+        onError: (error) => console.error(error),
+      },
+    });
+
+    const simBtn = document.createElement('button');
+    simBtn.className = "btn btn-solid";
+    simBtn.style.marginTop = "20px";
+    simBtn.innerText = "[DEV] Simular Pago Exitoso (Gatilla Mails)";
+    simBtn.onclick = async () => {
+      simBtn.innerText = "Procesando...";
+      await fetch('api.php?action=confirm_payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+      });
+      state.cart = [];
+      state.checkoutStep = 3;
+      await fetchListings(); 
+      render();
+    };
+    container.appendChild(simBtn);
+
+  } catch (error) {
+    container.innerHTML = `<div class="err">Error de red conectando al servidor.</div>`;
+  }
+}
+
+
+// ============================= CUENTAS Y PUBLICACIÓN =============================
+function ViewLogin(mode){
+  return `
+  <div class="form-shell">
+    <h2>${mode==='signup' ? 'Creá tu cuenta' : 'Ingresá a Perchero'}</h2>
+    <div class="form-sub">${mode==='signup' ? 'Sumate para comprar y vender prendas.' : 'Bienvenido de nuevo.'}</div>
+    ${mode==='signup' ? `<div class="field"><label>Nombre <span class="req">*</span></label><input type="text" id="su_name" placeholder="Tu nombre"></div>` : ''}
+    <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="auth_email" placeholder="tuemail@ejemplo.com"></div>
+    <div class="field"><label>Contraseña <span class="req">*</span></label><input type="password" id="auth_pass" placeholder="••••••••"></div>
+    <button class="btn btn-solid" onclick="doAuth('${mode}')" id="btn_auth">${mode==='signup' ? 'Crear cuenta' : 'Ingresar'}</button>
+    <div class="switch-link">
+      ${mode==='signup' ? `¿Ya tenés cuenta? <button onclick="navigate('#/login')">Ingresá</button>` : `¿No tenés cuenta? <button onclick="navigate('#/signup')">Creá una</button>`}
+    </div>
+  </div>`;
+}
+
+async function doAuth(mode){
+  const email = document.getElementById('auth_email').value.trim();
+  const pass = document.getElementById('auth_pass').value.trim();
+  if(!email || !pass){ showToast('Completá email y contraseña'); return; }
+  
+  let name = '';
+  if (mode === 'signup') {
+    name = document.getElementById('su_name').value.trim();
+    if(!name){ showToast('Ingresá tu nombre'); return; }
+  }
+
+  const btn = document.getElementById('btn_auth');
+  btn.innerText = 'Cargando...';
+  
+  try {
+    const res = await fetch(`api.php?action=${mode==='signup'?'register':'login'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password: pass })
+    });
+    
+    const data = await res.json();
+    if(data.success) {
+      state.user = data.user;
+      showToast(mode==='signup' ? `¡Cuenta creada! Hola, ${data.user.name}` : `Hola de nuevo, ${data.user.name}`);
+      navigate('#/');
+    } else {
+      showToast(data.error);
+      btn.innerText = mode==='signup' ? 'Crear cuenta' : 'Ingresar';
+    }
+  } catch(e) {
+    showToast("Error de conexión al servidor");
+    btn.innerText = mode==='signup' ? 'Crear cuenta' : 'Ingresar';
+  }
+}
+
+async function doLogout(){
+  await fetch('api.php?action=logout');
+  state.user = null;
+  navigate('#/');
+  showToast('Cerraste sesión');
+}
+
+function ViewVender(){
+  if(!state.user){
+    return `<div class="empty-state"><h3>Necesitás una cuenta para publicar</h3><button class="btn btn-solid" onclick="navigate('#/login')">Ingresar / Crear cuenta</button></div>`;
+  }
+  return `
+  <div class="form-shell wide">
+    <h2>Publicar una prenda</h2>
+    <div class="form-sub">Completá todos los campos obligatorios para vender tu prenda.</div>
+
+    <div class="field" id="f_photos">
+      <label>Subí una Foto <span class="req">*</span></label>
+      <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+        <input type="file" id="photoInput" name="photos[]" multiple accept="image/*" style="display:none" onchange="handlePhotos(this.files)">
+        <div style="font-size:13.5px;">📷 Tocá para subir la foto</div>
+      </div>
+      <div class="photo-chips" id="photoChips"></div>
+      <div class="err" id="err_photos" style="display:none;">Subí al menos una foto real de la prenda</div>
+    </div>
+
+    <div class="field" id="f_title"><label>Título <span class="req">*</span></label><input type="text" id="v_title" placeholder="Ej: Campera de jean oversize"><div class="err" id="err_title" style="display:none;">Ponele un título a tu prenda</div></div>
+
+    <div class="field-row">
+      <div class="field" id="f_category"><label>Categoría <span class="req">*</span></label>
+        <select id="v_category"><option value="">Elegir...</option>${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+        <div class="err" id="err_category" style="display:none;">Elegí una categoría</div>
+      </div>
+      <div class="field" id="f_brand"><label>Marca <span class="req">*</span></label><input type="text" id="v_brand" placeholder="Ej: Levi's, o 'Sin marca'"><div class="err" id="err_brand" style="display:none;">Indicá la marca</div></div>
+    </div>
+
+    <div class="field" id="f_color">
+      <label>Color <span class="req">*</span></label>
+      <div class="color-picker">
+        ${COLORS.map(c=>`<div class="swatch" data-color="${c.name}" style="background:${c.hex}" title="${c.name}" onclick="selectColor('${c.name}')"></div>`).join('')}
+      </div>
+      <div class="err" id="err_color" style="display:none;">Elegí el color principal</div>
+    </div>
+
+    <div class="field-row">
+      <div class="field" id="f_size"><label>Talle <span class="req">*</span></label>
+        <select id="v_size"><option value="">Elegir...</option>${SIZES.map(s=>`<option>${s}</option>`).join('')}</select>
+        <div class="err" id="err_size" style="display:none;">Elegí el talle</div>
+      </div>
+      <div class="field" id="f_condition"><label>Estado <span class="req">*</span></label>
+        <select id="v_condition"><option value="">Elegir...</option>${CONDITIONS.map(c=>`<option>${c}</option>`).join('')}</select>
+        <div class="err" id="err_condition" style="display:none;">Elegí el estado</div>
+      </div>
+    </div>
+
+    <div class="field" id="f_price"><label>Precio ($U) <span class="req">*</span></label><input type="number" id="v_price" placeholder="Ej: 1200"><div class="err" id="err_price" style="display:none;">Ingresá un precio válido</div></div>
+    <div class="field"><label>Descripción</label><textarea id="v_desc" placeholder="Contá el estado, si tiene algún detalle..."></textarea></div>
+
+    <button class="btn btn-solid" onclick="submitListing()" id="btn_submit_listing">Agregar</button>
+  </div>`;
+}
+
+let selectedColor = null;
+function selectColor(name){
+  selectedColor = name;
+  document.querySelectorAll('#f_color .swatch').forEach(s=>s.classList.toggle('selected', s.dataset.color===name));
+}
+function handlePhotos(files){
+  document.getElementById('photoChips').innerHTML = Array.from(files).map((f,i)=>`<div class="photo-chip">FOTO ${i+1}</div>`).join('');
+}
+
+async function submitListing(){
+  const vals = {
+    title: document.getElementById('v_title').value.trim(),
+    category: document.getElementById('v_category').value,
+    brand: document.getElementById('v_brand').value.trim(),
+    size: document.getElementById('v_size').value,
+    condition: document.getElementById('v_condition').value,
+    price: document.getElementById('v_price').value,
+    desc: document.getElementById('v_desc').value.trim()
+  };
+  
+  const files = document.getElementById('photoInput').files;
+  let valid = true;
+  const checks = [ ['photos', files.length > 0], ['title', !!vals.title], ['category', !!vals.category], ['brand', !!vals.brand], ['color', !!selectedColor], ['size', !!vals.size], ['condition', !!vals.condition], ['price', vals.price && Number(vals.price)>0] ];
+  
+  checks.forEach(([key, ok])=>{
+    const errEl = document.getElementById('err_'+key);
+    const fieldEl = document.getElementById('f_'+key);
+    if(!ok){ valid=false; errEl.style.display='block'; fieldEl.classList.add('has-err'); }
+    else { errEl.style.display='none'; fieldEl.classList.remove('has-err'); }
+  });
+  if(!valid){ showToast('Completá los campos obligatorios'); return; }
+
+  const formData = new FormData();
+  for (let key in vals) formData.append(key, vals[key]);
+  formData.append('color', selectedColor);
+  formData.append('seller_id', state.user.id); 
+
+  for(let i=0; i < files.length; i++){ formData.append('photos[]', files[i]); }
+
+  const btn = document.getElementById('btn_submit_listing');
+  btn.innerText = "Agregando...";
+
+  try {
+    const res = await fetch('api.php?action=add_product', { method: 'POST', body: formData });
+    const data = await res.json();
+    if(data.success) {
+      showToast('¡Prenda agregada con éxito!');
+      await fetchListings(); 
+      selectedColor = null; 
+      navigate('#/');
+    } else {
+      showToast(data.error);
+      btn.innerText = "Agregar";
+    }
+  } catch(e) {
+    showToast("Error subiendo la prenda, fijate tu conexión");
+    btn.innerText = "Agregar";
+  }
+}
+
+function ViewPerfil(){
+  if(!state.user){ navigate('#/login'); return ''; }
+  const mine = listings.filter(l=>l.seller_id === state.user.id);
+  return `
+  <div class="profile-head">
+    <div class="avatar">${initials(state.user.name)}</div>
+    <div><h2 style="font-size:22px;">${esc(state.user.name)}</h2><div style="font-size:13px;color:rgba(33,28,27,0.6);">${esc(state.user.email)}</div></div>
+    <button class="btn" style="margin-left:auto;" onclick="doLogout()">Cerrar sesión</button>
+  </div>
+  <div class="profile-tabs"><button class="active">Mis publicaciones (${mine.length})</button></div>
+  ${mine.length ? `<div class="grid">${mine.map(ProductCard).join('')}</div>` : `<div class="empty-state"><h3>Todavía no publicaste nada</h3><button class="btn btn-solid" onclick="navigate('#/vender')">Publicar mi primera prenda</button></div>`}
+  `;
+}
+
+// ============================= ROUTER Y RENDER =============================
+function routeView(){
+  switch(state.route){
+    case '#/': return ViewHome();
+    case '#/buscar': return ViewBuscar();
+    case '#/producto': return ViewProducto();
+    case '#/carrito': return ViewCarrito();
+    case '#/checkout': return ViewCheckout();
+    case '#/login': return ViewLogin('login');
+    case '#/signup': return ViewLogin('signup');
+    case '#/vender': return ViewVender();
+    case '#/perfil': return ViewPerfil();
+    default: return ViewHome();
+  }
+}
+
+// Única función render 100% armada, sin overrides raros.
+function render(){
+  document.getElementById('app').innerHTML = `
+    ${Header()}
+    <main>${routeView()}</main>
+    ${Footer()}
+    ${Toast()}
+  `;
+  
+  if (state.route === '#/checkout') {
+    if (state.checkoutStep === 1) setTimeout(initGoogleMapsAutocomplete, 100);
+    if (state.checkoutStep === 2) setTimeout(initMercadoPagoWallet, 100);
+  }
+  
+  const t = document.getElementById('toastEl');
+  if(t) requestAnimationFrame(()=> t.classList.add('show'));
+}
+
+// Render Inicial
+render();
+</script>
+</body>
+</html>

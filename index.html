@@ -99,7 +99,7 @@ let state = {
 const COLORS = [ {name:'Negro', hex:'#211C1B'}, {name:'Blanco', hex:'#F4F1EA'}, {name:'Beige', hex:'#D9C7A3'}, {name:'Azul', hex:'#3B5773'}, {name:'Verde', hex:'#5C6B4A'}, {name:'Rojo', hex:'#C23B4B'}, {name:'Mostaza', hex:'#E8A33D'}, {name:'Rosa', hex:'#D98CA0'}, {name:'Marrón', hex:'#7A5230'} ];
 const SIZES = ['XS','S','M','L','XL','XXL'];
 const CONDITIONS = ['Nuevo con Etiqueta','Sin uso','Buen estado','Usado','Con detalles'];
-const CATEGORIES = ['Remeras','Camperas','Pantalones','Vestidos','Buzos','Accesorios','Calzado'];
+const CATEGORIES = ['Remeras','Camperas','Pantalones','Vestidos','Buzos','Accesorios','Calzado','CAMISA'];
 let listings = [];
 
 
@@ -212,7 +212,10 @@ function Header(){
   return `
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="logo" onclick="navigate('#/')"><span class="dot"></span>PERCHERO</div>
+      <div class="logo" onclick="navigate('#/')" style="display:flex; align-items:center; gap:10px;">
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='32' height='32'><circle cx='50' cy='50' r='45' fill='%23C23B4B'/><path d='M30 40 L50 20 L70 40 M50 20 L50 80' stroke='white' stroke-width='8' fill='none'/></svg>" alt="Logo Perchero" style="width:32px; height:32px;">
+    <span>PERCHERO</span>
+  </div>
       <div class="searchbar">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="searchInput" type="text" placeholder="Buscar remeras, marcas, camperas..." value="${esc(state.query)}" onkeydown="if(event.key==='Enter'){state.query=this.value; navigate('#/buscar');}">
@@ -237,7 +240,20 @@ function Header(){
 
 function Footer(){
   return `<footer>
-    <div class="logo"><span class="dot"></span>PERCHERO</div>
+    <div class="logo" style="justify-content:center; margin-bottom: 12px;">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='24' height='24'><circle cx='50' cy='50' r='45' fill='%23C23B4B'/><path d='M30 40 L50 20 L70 40 M50 20 L50 80' stroke='white' stroke-width='8' fill='none'/></svg>" alt="Logo Perchero" style="width:24px; height:24px; margin-right:8px;">
+      <span>PERCHERO</span>
+    </div>
+    <div style="margin-bottom:12px; display:flex; justify-content:center; gap:20px; font-size:14px; font-weight:600; color:var(--denim-dark);">
+      <a href="mailto:info@perchero.store" style="text-decoration:none; display:flex; align-items:center; gap:5px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        info@perchero.store
+      </a>
+      <a href="https://instagram.com/perchero.str" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+        @perchero.str
+      </a>
+    </div>
     <div>Prototipo funcional c/ MercadoPago, Maps API y Mails</div>
   </footer>`;
 }
@@ -246,8 +262,15 @@ function Toast(){
   return state.toastMsg ? `<div class="toast" id="toastEl"><span class="dot"></span>${esc(state.toastMsg)}</div>` : '';
 }
 
-function ProductCard(l){
+function ProductCard(l, isProfile = false){
+  let badge = '';
+  if (isProfile) {
+    if (l.status === 'revision') badge = `<div style="background:var(--marigold); color:var(--ink); padding:4px; text-align:center; font-weight:bold; font-size:12px;">En Revisión</div>`;
+    else if (l.status === 'publicado') badge = `<div style="background:var(--moss); color:#fff; padding:4px; text-align:center; font-weight:bold; font-size:12px;">Publicado (${l.views || 0} visitas)</div>`;
+    else if (l.status === 'vendido') badge = `<div style="background:var(--cherry); color:#fff; padding:4px; text-align:center; font-weight:bold; font-size:12px;">Vendido a ${fmt(l.sold_price || l.price)}</div>`;
+  }
   return `<div class="card" onclick="state.currentProductId=${l.id}; navigate('#/producto')">
+    ${badge}
     <div class="card-img">
       ${renderVisual(l, 0)}
       <span class="tag ${l.condition==='Nuevo con Etiqueta'?'tag-cherry':''}">${l.condition==='Nuevo con Etiqueta'?'NUEVO':esc(l.condition)}</span>
@@ -345,6 +368,15 @@ function ViewProducto(){
   if(!l) return `<div class="empty-state"><h3>Prenda no encontrada</h3><button class="btn btn-solid" onclick="navigate('#/')">Volver</button></div>`;
   const inCart = state.cart.some(c=>c.id===l.id);
   
+  // Track view
+  setTimeout(() => {
+    fetch('api.php?action=track_view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: l.id })
+    }).catch(e => console.error(e));
+  }, 500);
+
   const totalPhotos = l.photos_urls?.length > 0 ? l.photos_urls.length : (l.photos || 1);
   const thumbs = Array.from({length: totalPhotos}).map((_,i)=>renderVisual(l, i));
 
@@ -551,28 +583,78 @@ async function initMercadoPagoWallet() {
 // ============================= CUENTAS Y PUBLICACIÓN =============================
 function ViewLogin(mode){
   return `
-  <div class="form-shell">
+  <div class="form-shell" style="position:relative;">
     <h2>${mode==='signup' ? 'Creá tu cuenta' : 'Ingresá a Perchero'}</h2>
     <div class="form-sub">${mode==='signup' ? 'Sumate para comprar y vender prendas.' : 'Bienvenido de nuevo.'}</div>
     ${mode==='signup' ? `<div class="field"><label>Nombre <span class="req">*</span></label><input type="text" id="su_name" placeholder="Tu nombre"></div>` : ''}
     <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="auth_email" placeholder="tuemail@ejemplo.com"></div>
-    <div class="field"><label>Contraseña <span class="req">*</span></label><input type="password" id="auth_pass" placeholder="••••••••"></div>
+    <div class="field"><label>Contraseña ${mode==='login' ? '' : '<span class="req">*</span>'}</label><input type="password" id="auth_pass" placeholder="••••••••">
+    ${mode==='login' ? '<div style="font-size:12px; margin-top:5px; text-align:right;"><a href="#" onclick="doMagicLink(); return false;" style="color:var(--denim-dark);">No me acuerdo el password (ingresar con link)</a></div>' : ''}
+    </div>
+
+    ${mode==='signup' ? `
+    <div class="field" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="su_terms" style="width:auto; margin:0;">
+      <label for="su_terms" style="margin:0; text-transform:none; letter-spacing:0; font-weight:normal; font-size:13px;">Acepto los <a href="#" onclick="showTerms(); return false;" style="text-decoration:underline; color:var(--denim-dark);">Términos y Condiciones</a> <span class="req">*</span></label>
+    </div>` : ''}
+
     <button class="btn btn-solid" onclick="doAuth('${mode}')" id="btn_auth">${mode==='signup' ? 'Crear cuenta' : 'Ingresar'}</button>
     <div class="switch-link">
       ${mode==='signup' ? `¿Ya tenés cuenta? <button onclick="navigate('#/login')">Ingresá</button>` : `¿No tenés cuenta? <button onclick="navigate('#/signup')">Creá una</button>`}
     </div>
+
+    <div id="terms_modal" style="display:none; position:absolute; inset:0; background:var(--card); z-index:10; padding:20px; border-radius:var(--radius); border:2px solid var(--ink); flex-direction:column;">
+      <h3 style="font-family:'Courier New', Courier, monospace; margin-top:0;">Términos y Condiciones</h3>
+      <div id="terms_content" style="flex:1; overflow-y:auto; font-family:'Courier New', Courier, monospace; font-size:13px; line-height:1.5; padding:10px; border:1px solid var(--line); margin-bottom:15px; background:var(--paper);">Cargando...</div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1;" onclick="window.print()">Imprimir</button>
+        <button class="btn btn-solid" style="flex:1;" onclick="document.getElementById('terms_modal').style.display='none'">Cerrar</button>
+      </div>
+    </div>
   </div>`;
+}
+
+async function showTerms() {
+  const modal = document.getElementById('terms_modal');
+  modal.style.display = 'flex';
+  try {
+    const res = await fetch('condiciones.txt');
+    const text = await res.text();
+    document.getElementById('terms_content').innerText = text;
+  } catch (e) {
+    document.getElementById('terms_content').innerText = "No se pudieron cargar los términos.";
+  }
+}
+
+async function doMagicLink() {
+  const email = document.getElementById('auth_email').value.trim();
+  if (!email) { showToast('Ingresá tu email primero'); return; }
+  const btn = document.getElementById('btn_auth');
+  btn.innerText = 'Enviando...';
+  try {
+    const res = await fetch('api.php?action=login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, magic_login: true })
+    });
+    const data = await res.json();
+    showToast(data.message || data.error);
+  } catch(e) {
+    showToast("Error de conexión");
+  }
+  btn.innerText = 'Ingresar';
 }
 
 async function doAuth(mode){
   const email = document.getElementById('auth_email').value.trim();
   const pass = document.getElementById('auth_pass').value.trim();
-  if(!email || !pass){ showToast('Completá email y contraseña'); return; }
+  if(!email || (!pass && mode==='signup')){ showToast('Completá email y contraseña'); return; }
   
   let name = '';
   if (mode === 'signup') {
     name = document.getElementById('su_name').value.trim();
     if(!name){ showToast('Ingresá tu nombre'); return; }
+    if(!document.getElementById('su_terms').checked){ showToast('Debes aceptar los términos y condiciones'); return; }
   }
 
   const btn = document.getElementById('btn_auth');
@@ -622,7 +704,7 @@ function ViewVender(){
         <input type="file" id="photoInput" name="photos[]" multiple accept="image/*" style="display:none" onchange="handlePhotos(this.files)">
         <div style="font-size:13.5px;">📷 Tocá para subir la foto</div>
       </div>
-      <div class="photo-chips" id="photoChips"></div>
+      <div class="photo-chips" id="photoChips" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;"></div>
       <div class="err" id="err_photos" style="display:none;">Subí al menos una foto real de la prenda</div>
     </div>
 
@@ -630,7 +712,7 @@ function ViewVender(){
 
     <div class="field-row">
       <div class="field" id="f_category"><label>Categoría <span class="req">*</span></label>
-        <select id="v_category"><option value="">Elegir...</option>${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+        <select id="v_category" onchange="handleCategoryChange()"><option value="">Elegir...</option>${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
         <div class="err" id="err_category" style="display:none;">Elegí una categoría</div>
       </div>
       <div class="field" id="f_brand"><label>Marca <span class="req">*</span></label><input type="text" id="v_brand" placeholder="Ej: Levi's, o 'Sin marca'"><div class="err" id="err_brand" style="display:none;">Indicá la marca</div></div>
@@ -638,15 +720,15 @@ function ViewVender(){
 
     <div class="field" id="f_color">
       <label>Color <span class="req">*</span></label>
-      <div class="color-picker">
-        ${COLORS.map(c=>`<div class="swatch" data-color="${c.name}" style="background:${c.hex}" title="${c.name}" onclick="selectColor('${c.name}')"></div>`).join('')}
-      </div>
+      <input type="color" id="v_color" style="width:100%; height:40px; padding:0; cursor:pointer;" onchange="selectedColor=this.value;">
       <div class="err" id="err_color" style="display:none;">Elegí el color principal</div>
     </div>
 
     <div class="field-row">
       <div class="field" id="f_size"><label>Talle <span class="req">*</span></label>
         <select id="v_size"><option value="">Elegir...</option>${SIZES.map(s=>`<option>${s}</option>`).join('')}</select>
+        <div id="shoe_size_container" style="display:none; margin-top:10px;">
+        </div>
         <div class="err" id="err_size" style="display:none;">Elegí el talle</div>
       </div>
       <div class="field" id="f_condition"><label>Estado <span class="req">*</span></label>
@@ -663,25 +745,83 @@ function ViewVender(){
 }
 
 let selectedColor = null;
-function selectColor(name){
-  selectedColor = name;
-  document.querySelectorAll('#f_color .swatch').forEach(s=>s.classList.toggle('selected', s.dataset.color===name));
+
+function handleCategoryChange() {
+  const cat = document.getElementById('v_category').value;
+  const shoeContainer = document.getElementById('shoe_size_container');
+  const sizeSelect = document.getElementById('v_size');
+
+  if (cat === 'Calzado') {
+    sizeSelect.style.display = 'none';
+    shoeContainer.style.display = 'block';
+    shoeContainer.innerHTML = `
+<div class="conversor-sencillo" style="background:#f9f9f9; padding:10px; border-radius:5px; border:1px solid #ddd;">
+    <h3 style="margin-top:0; font-size:14px; text-align:center;">Conversor de Calzado</h3>
+    <label for="talleSeleccionado" style="font-size:12px;">Selecciona tu talle (UY/EU):</label>
+    <select id="talleSeleccionado" onchange="mostrarTalleFijo()" style="width:100%; padding:5px; font-size:14px;">
+        <option value="36">Talle 36</option><option value="37">Talle 37</option><option value="38">Talle 38</option><option value="39" selected>Talle 39</option><option value="40">Talle 40</option><option value="41">Talle 41</option><option value="42">Talle 42</option><option value="43">Talle 43</option>
+    </select>
+    <div class="cuadro-fijo" style="background:#fff; padding:10px; margin-top:10px; font-size:12px;">
+        <div class="item-talle">Brasil (BR): <strong id="br">-</strong></div>
+        <div class="item-talle">EE. UU. (US Hombre): <strong id="usH">-</strong></div>
+        <div class="item-talle">EE. UU. (US Mujer): <strong id="usM">-</strong></div>
+        <div class="item-talle">Largo del pie: <strong id="cm">-</strong></div>
+    </div>
+</div>`;
+    mostrarTalleFijo();
+  } else {
+    sizeSelect.style.display = 'block';
+    shoeContainer.style.display = 'none';
+    shoeContainer.innerHTML = '';
+  }
 }
+
+function mostrarTalleFijo() {
+    const el = document.getElementById("talleSeleccionado");
+    if(!el) return;
+    const talle = el.value;
+    const br = document.getElementById("br");
+    const usH = document.getElementById("usH");
+    const usM = document.getElementById("usM");
+    const cm = document.getElementById("cm");
+    if (talle === "36") { br.innerText = "34"; usH.innerText = "4.5"; usM.innerText = "6"; cm.innerText = "23 cm"; }
+    else if (talle === "37") { br.innerText = "35"; usH.innerText = "5"; usM.innerText = "6.5"; cm.innerText = "23.5 cm"; }
+    else if (talle === "38") { br.innerText = "36"; usH.innerText = "6"; usM.innerText = "7.5"; cm.innerText = "24.5 cm"; }
+    else if (talle === "39") { br.innerText = "37"; usH.innerText = "6.5"; usM.innerText = "8.5"; cm.innerText = "25 cm"; }
+    else if (talle === "40") { br.innerText = "38"; usH.innerText = "7"; usM.innerText = "9"; cm.innerText = "25.5 cm"; }
+    else if (talle === "41") { br.innerText = "39"; usH.innerText = "8"; usM.innerText = "10"; cm.innerText = "26.5 cm"; }
+    else if (talle === "42") { br.innerText = "40"; usH.innerText = "9"; usM.innerText = "10.5"; cm.innerText = "27 cm"; }
+    else if (talle === "43") { br.innerText = "41"; usH.innerText = "10"; usM.innerText = "11.5"; cm.innerText = "28 cm"; }
+}
+
 function handlePhotos(files){
-  document.getElementById('photoChips').innerHTML = Array.from(files).map((f,i)=>`<div class="photo-chip">FOTO ${i+1}</div>`).join('');
+  const container = document.getElementById('photoChips');
+  container.innerHTML = '';
+  Array.from(files).forEach((f, i) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      container.innerHTML += `<div style="width:70px; height:70px; border:2px solid var(--ink); border-radius:4px; overflow:hidden;"><img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+    };
+    reader.readAsDataURL(f);
+  });
 }
 
 async function submitListing(){
+  const cat = document.getElementById('v_category').value;
+  const sizeVal = cat === 'Calzado' ? (document.getElementById('talleSeleccionado') ? document.getElementById('talleSeleccionado').value : '') : document.getElementById('v_size').value;
+
   const vals = {
     title: document.getElementById('v_title').value.trim(),
-    category: document.getElementById('v_category').value,
+    category: cat,
     brand: document.getElementById('v_brand').value.trim(),
-    size: document.getElementById('v_size').value,
+    size: sizeVal,
     condition: document.getElementById('v_condition').value,
     price: document.getElementById('v_price').value,
     desc: document.getElementById('v_desc').value.trim()
   };
   
+  selectedColor = document.getElementById('v_color').value;
+
   const files = document.getElementById('photoInput').files;
   let valid = true;
   const checks = [ ['photos', files.length > 0], ['title', !!vals.title], ['category', !!vals.category], ['brand', !!vals.brand], ['color', !!selectedColor], ['size', !!vals.size], ['condition', !!vals.condition], ['price', vals.price && Number(vals.price)>0] ];
@@ -722,18 +862,476 @@ async function submitListing(){
   }
 }
 
+let profileTab = 'publicaciones';
+let mySales = [];
+let myPurchases = [];
+let profileDataLoaded = false;
+let myListings = [];
+
+async function loadProfileData() {
+  if (profileDataLoaded) return;
+  try {
+    const resSales = await fetch('api.php?action=get_my_sales');
+    const dataSales = await resSales.json();
+    if (dataSales.success) mySales = dataSales.sales;
+
+    const resPurchases = await fetch('api.php?action=get_my_purchases');
+    const dataPurchases = await resPurchases.json();
+    if (dataPurchases.success) myPurchases = dataPurchases.purchases;
+
+    // Refresh mine to include ALL states
+    const resAll = await fetch('api.php?action=get_products&all=1');
+    myListings = await resAll.json();
+
+    profileDataLoaded = true;
+    render();
+  } catch (e) { console.error(e); }
+}
+
 function ViewPerfil(){
   if(!state.user){ navigate('#/login'); return ''; }
-  const mine = listings.filter(l=>l.seller_id === state.user.id);
+  if(!profileDataLoaded) { loadProfileData(); return 'Cargando perfil...'; }
+
+  const mine = myListings;
+
   return `
   <div class="profile-head">
     <div class="avatar">${initials(state.user.name)}</div>
-    <div><h2 style="font-size:22px;">${esc(state.user.name)}</h2><div style="font-size:13px;color:rgba(33,28,27,0.6);">${esc(state.user.email)}</div></div>
+    <div>
+      <h2 style="font-size:22px;">${esc(state.user.name)}</h2>
+      <div style="font-size:13px;color:rgba(33,28,27,0.6);">${esc(state.user.email)}</div>
+      ${state.user.is_admin ? `<span class="tag tag-cherry" style="margin-top:5px; display:inline-block;">Admin</span>` : ''}
+    </div>
     <button class="btn" style="margin-left:auto;" onclick="doLogout()">Cerrar sesión</button>
   </div>
-  <div class="profile-tabs"><button class="active">Mis publicaciones (${mine.length})</button></div>
-  ${mine.length ? `<div class="grid">${mine.map(ProductCard).join('')}</div>` : `<div class="empty-state"><h3>Todavía no publicaste nada</h3><button class="btn btn-solid" onclick="navigate('#/vender')">Publicar mi primera prenda</button></div>`}
+
+  <div class="profile-tabs">
+    <button class="${profileTab==='publicaciones'?'active':''}" onclick="profileTab='publicaciones'; render()">Mis publicaciones (${mine.length})</button>
+    <button class="${profileTab==='compras'?'active':''}" onclick="profileTab='compras'; render()">Mis compras (${myPurchases.length})</button>
+    <button class="${profileTab==='ventas'?'active':''}" onclick="profileTab='ventas'; render()">Mis ventas (${mySales.length})</button>
+    ${state.user.is_admin ? `<button class="${profileTab==='admin'?'active':''}" onclick="profileTab='admin'; render()">Administrar</button>` : ''}
+  </div>
+
+  <div style="margin-top:20px;">
+    ${renderProfileTabContent(mine)}
+  </div>
   `;
+}
+
+function renderProfileTabContent(mine) {
+  if (profileTab === 'publicaciones') {
+    return mine.length ? `<div class="grid">${mine.map(l => ProductCard(l, true)).join('')}</div>` : `<div class="empty-state"><h3>Todavía no publicaste nada</h3><button class="btn btn-solid" onclick="navigate('#/vender')">Publicar mi primera prenda</button></div>`;
+  }
+
+  if (profileTab === 'ventas') {
+    const hasBankInfo = state.user && state.user.bank_info;
+    let bankFormHtml = '';
+
+    if (!hasBankInfo) {
+      bankFormHtml = `
+      <div class="form-banco" style="background:#ffffff; padding:25px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); width:100%; max-width:450px; margin:0 auto 30px;">
+        <h2 style="margin-top:0; color:#333; font-size:20px; text-align:center; border-bottom:2px solid #eaeaea; padding-bottom:12px;">Datos de Cobro / Transferencia</h2>
+        <form id="formDatosBancarios" onsubmit="guardarDatosBancarios(event)">
+          <div class="field"><label>Nombre completo del titular:</label><input type="text" id="b_titular" required placeholder="Como figura en la cuenta"></div>
+          <div class="field"><label>Banco o Plataforma:</label>
+            <select id="b_banco" onchange="controlarCamposDinamicos()" required>
+              <option value="">-- Seleccione una opción --</option>
+              <option value="brou">BROU (Banco República)</option>
+              <option value="itau">Banco Itaú</option>
+              <option value="santander">Banco Santander</option>
+              <option value="bbva">BBVA</option>
+              <option value="scotiabank">Scotiabank</option>
+              <option value="midinero">Mi Dinero (Redpagos)</option>
+              <option value="prex">Prex Uruguay</option>
+              <option value="mercadopago">Mercado Pago</option>
+              <option value="otro">Otro Banco...</option>
+            </select>
+          </div>
+          <div class="field" id="grupoOtroBanco" style="display:none;"><label>Nombre de la institución bancaria:</label><input type="text" id="nombreOtroBanco" placeholder="Ej: Banco Heritage, Bandes, HSBC..."></div>
+          <div class="field" id="grupoTipoCuenta"><label>Tipo de cuenta:</label>
+            <select id="b_tipoCuenta">
+              <option value="caja_ahorro">Caja de Ahorros</option>
+              <option value="cuenta_corriente">Cuenta Corriente</option>
+            </select>
+          </div>
+          <div class="field" id="grupoMoneda"><label>Moneda:</label>
+            <select id="b_moneda"><option value="uyu">Pesos Uruguayos ($)</option><option value="usd">Dólares Americanos (US$)</option></select>
+          </div>
+          <div class="field"><label id="labelCuenta">Número de cuenta:</label>
+            <input type="text" id="b_nroCuenta" required placeholder="Ingrese la numeración completa">
+            <span style="font-size:12px; color:#666; margin-top:4px; display:block;" id="ayudaBanco">Seleccione una opción para ver indicaciones sobre el formato.</span>
+          </div>
+          <button type="submit" class="btn btn-solid" style="background-color:#28a745; border-color:#28a745; width:100%;">Guardar Datos</button>
+        </form>
+      </div>`;
+    }
+
+    const salesListHtml = mySales.length ? `<div style="border-top:1px solid var(--line); padding-top:20px;">
+      <h3 style="margin-bottom:16px;">Tus ventas</h3>
+      <div class="grid">${mySales.map(s => `
+        <div class="card">
+          <div class="card-img" style="position:relative;">
+            ${renderVisual(s, 0)}
+            <div style="position:absolute; bottom:8px; right:8px; background:var(--cherry); color:#fff; font-family:'Space Mono'; font-weight:700; font-size:12px; padding:4px 8px; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">${fmt(s.price)}</div>
+          </div>
+          <div class="card-body">
+            <div class="title">${esc(s.title)}</div>
+            <div style="font-size:12px; margin:8px 0; color:var(--denim-dark); font-weight:bold;">Estado: ${esc(s.order_status)}</div>
+            ${s.tracking_number ? `
+              <div style="font-size:12px; color:#666;">Tracking: ${esc(s.tracking_number)}</div>
+            ` : `
+              <div style="display:flex; gap:5px; margin-top:10px;">
+                <input type="text" id="track_${s.order_id}" placeholder="Nº de tracking" style="flex:1; padding:5px; border:1px solid #ccc; font-size:12px;">
+                <button class="btn btn-solid" style="padding:5px 10px; font-size:12px;" onclick="addTrackingNumber(${s.order_id})">Subir</button>
+              </div>
+            `}
+          </div>
+        </div>
+      `).join('')}</div>
+    </div>` : `<div class="empty-state"><h3>Aún no tienes ventas</h3></div>`;
+
+    return bankFormHtml + salesListHtml;
+  }
+
+  if (profileTab === 'compras') {
+    return myPurchases.length ? `<div style="border-top:1px solid var(--line); padding-top:20px;">
+      <h3 style="margin-bottom:16px;">Tus compras</h3>
+      <div style="display:flex; flex-direction:column; gap:20px;">${myPurchases.map(p => {
+        let progress = 25;
+        let pstate = 'Comprado';
+        if (p.order_status === 'shipped') { progress = 50; pstate = 'Enviado'; }
+        if (p.order_status === 'in_transit') { progress = 75; pstate = 'En camino'; }
+        if (p.order_status === 'delivered') { progress = 100; pstate = 'Recibido'; }
+
+        return `
+        <div style="border:2px solid var(--ink); border-radius:var(--radius); background:var(--card); padding:16px; display:flex; gap:20px; align-items:center;">
+          <div style="width:80px; height:100px; flex-shrink:0;">
+            ${renderVisual(p, 0)}
+          </div>
+          <div style="flex:1;">
+            <div class="title" style="font-weight:600; font-size:16px;">${esc(p.title)}</div>
+            <div style="font-size:13px; color:var(--denim-dark); margin:8px 0;">Estado: ${pstate}</div>
+
+            <div style="width:100%; height:8px; background:#ddd; border-radius:4px; overflow:hidden; margin-bottom:12px;">
+              <div style="width:${progress}%; height:100%; background:var(--moss); transition:width 0.3s;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+              <div>
+                ${p.tracking_number ? `
+                  <a href="https://www.dac.com.uy/envios/rastreo/Codigo_Rastreo/${esc(p.tracking_number)}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; background:var(--denim); color:#fff; padding:4px 8px; border-radius:4px; text-decoration:none; font-weight:bold;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"></path><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                    Seguir envío
+                  </a>
+                ` : 'Pendiente de envío'}
+              </div>
+              <button class="btn btn-ghost" style="color:var(--cherry); font-size:12px; padding:4px;" onclick="openDisputePrompt(${p.order_id})">Tuve un problema</button>
+            </div>
+          </div>
+        </div>
+      `;}).join('')}</div>
+    </div>` : `<div class="empty-state"><h3>No tenés compras</h3><button class="btn btn-solid" onclick="navigate('#/buscar')">Ir de compras</button></div>`;
+  }
+
+  if (profileTab === 'admin') {
+    if (!state.user.is_admin) return 'Acceso denegado';
+    return `
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button class="btn btn-ghost" onclick="loadAdminTab('productos')">Aprobar Publicaciones</button>
+        <button class="btn btn-ghost" onclick="loadAdminTab('disputas')">Disputas Abiertas</button>
+        <button class="btn btn-ghost" onclick="loadAdminTab('transferencias')">Transferir Ventas</button>
+        <button class="btn btn-ghost" onclick="loadAdminTab('stats')">Estadísticas</button>
+      </div>
+      <div id="admin_content" style="border:1px solid var(--line); border-radius:var(--radius); padding:20px; background:var(--card);">
+        Seleccione una opción del menú para administrar.
+      </div>
+    `;
+  }
+
+  return '<div>(En construcción)</div>';
+}
+
+let adminDataCache = {};
+async function loadAdminTab(tab) {
+  const content = document.getElementById('admin_content');
+  content.innerHTML = 'Cargando...';
+
+  try {
+    if (tab === 'productos') {
+      const res = await fetch('api.php?action=admin_get_pending_products');
+      const data = await res.json();
+      if (!data.success) { content.innerHTML = data.error; return; }
+
+      content.innerHTML = `<h3>Publicaciones para Aprobar (${data.products.length})</h3>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          ${data.products.map(p => `
+            <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px; display:flex; gap:15px;">
+              <div style="width:60px; height:80px; flex-shrink:0;">${renderVisual(p, 0)}</div>
+              <div style="flex:1;">
+                <input type="text" id="admin_p_title_${p.id}" value="${esc(p.title)}" style="width:100%; margin-bottom:5px;">
+                <div style="display:flex; gap:10px; margin-bottom:5px;">
+                  <input type="text" id="admin_p_cat_${p.id}" value="${esc(p.category)}" style="width:100px;">
+                  <input type="number" id="admin_p_price_${p.id}" value="${p.price}" style="width:100px;">
+                </div>
+                <div style="font-size:12px; color:gray;">Vendedor: ${esc(p.seller_name)}</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px; justify-content:center;">
+                <button class="btn btn-solid" style="padding:5px 10px; font-size:12px;" onclick="adminProcessProduct(${p.id}, 'publicado')">Aprobar</button>
+                <button class="btn btn-ghost" style="padding:5px 10px; font-size:12px; color:var(--cherry);" onclick="adminProcessProduct(${p.id}, 'rechazado')">Rechazar</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    } else if (tab === 'disputas') {
+      const res = await fetch('api.php?action=admin_get_disputes');
+      const data = await res.json();
+      if (!data.success) { content.innerHTML = data.error; return; }
+
+      content.innerHTML = `<h3>Disputas Abiertas (${data.disputes.length})</h3>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          ${data.disputes.map(d => `
+            <div style="border:1px solid var(--cherry); padding:10px; background:#fff; border-radius:4px;">
+              <div style="font-weight:bold;">Orden #${d.order_id} - Total: ${fmt(d.total)}</div>
+              <div style="font-size:12px; margin-bottom:5px;">Comprador: ${esc(d.buyer_name)} (${esc(d.buyer_email)}) | Fecha: ${d.order_date} | Días: ${d.days_passed}</div>
+              <div style="font-size:12px; margin-bottom:10px;">Tracking: ${esc(d.tracking_number || 'N/A')}</div>
+              <div style="background:#f9f9f9; padding:8px; border-left:3px solid var(--cherry); margin-bottom:10px; font-size:13px;">${esc(d.text)}</div>
+              <button class="btn btn-solid" style="padding:5px 15px; font-size:12px;" onclick="adminCloseDispute(${d.id})">Cerrar Disputa</button>
+            </div>
+          `).join('')}
+        </div>`;
+    } else if (tab === 'transferencias') {
+      const res = await fetch('api.php?action=admin_get_transfers');
+      const data = await res.json();
+      if (!data.success) { content.innerHTML = data.error; return; }
+
+      content.innerHTML = `<h3>Ventas para Transferir (>90 días) (${data.transfers.length})</h3>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          ${data.transfers.map(t => `
+            <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px;">
+              <div style="font-weight:bold; margin-bottom:5px;">Venta #${t.id} - ${fmt(t.total)}</div>
+              <div style="font-size:12px; margin-bottom:5px;">Vendedor: ${esc(t.seller_name)} (${esc(t.seller_email)})</div>
+              <div style="font-size:12px; background:#eee; padding:5px; margin-bottom:10px; border-radius:3px;">
+                <strong>Banco:</strong> ${t.bank_info ? `${esc(t.bank_info.banco)} - ${esc(t.bank_info.tipo)} en ${esc(t.bank_info.moneda)}<br>Cuenta: ${esc(t.bank_info.cuenta)}<br>Titular: ${esc(t.bank_info.titular)}` : 'Sin datos'}
+              </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text" id="admin_proof_${t.id}" placeholder="Link o Nro de Comprobante" style="flex:1; padding:5px;">
+                <button class="btn btn-solid" style="padding:5px 15px; font-size:12px; background:var(--moss); border-color:var(--moss);" onclick="adminProcessTransfer(${t.id}, 'transferido')">Transferido</button>
+                <button class="btn btn-ghost" style="padding:5px 15px; font-size:12px; color:var(--cherry);" onclick="adminProcessTransfer(${t.id}, 'error')">Error transferencia</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    } else if (tab === 'stats') {
+      const res = await fetch('api.php?action=admin_get_stats');
+      const data = await res.json();
+      if (!data.success) { content.innerHTML = data.error; return; }
+      const s = data.stats;
+
+      content.innerHTML = `<h3>Estadísticas Generales</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+          <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
+            <div style="font-size:24px; font-weight:bold;">${s.users}</div>
+            <div style="font-size:12px; text-transform:uppercase;">Usuarios Registrados</div>
+          </div>
+          <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
+            <div style="font-size:24px; font-weight:bold;">${s.views_today}</div>
+            <div style="font-size:12px; text-transform:uppercase;">Visitas de Productos Hoy</div>
+          </div>
+        </div>
+
+        <h4>Estado de Ventas</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; text-align:center; font-size:13px;">
+          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.sales_total}</strong><br>Ventas Totales</div>
+          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.in_transit}</strong><br>En Tránsito</div>
+          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.completed}</strong><br>Completadas (Pagadas)</div>
+        </div>
+
+        <h4>Ventas por Período</h4>
+        <ul style="font-size:14px; margin-bottom:20px;">
+          <li>Hoy: <strong>${s.sales_today}</strong></li>
+          <li>Este Mes: <strong>${s.sales_month}</strong></li>
+          <li>Este Año: <strong>${s.sales_year}</strong></li>
+        </ul>
+
+        <h4>Top 10 Artículos Más Visitados</h4>
+        <div style="font-size:13px;">
+          ${s.top_trend.map((t, i) => `<div style="padding:5px 0; border-bottom:1px solid #eee;">${i+1}. <strong>${esc(t.title)}</strong> - ${t.views} vistas</div>`).join('')}
+        </div>
+      `;
+    }
+  } catch(e) {
+    content.innerHTML = 'Error cargando datos.';
+  }
+}
+
+async function adminProcessProduct(id, status) {
+  const title = document.getElementById('admin_p_title_'+id).value;
+  const category = document.getElementById('admin_p_cat_'+id).value;
+  const price = document.getElementById('admin_p_price_'+id).value;
+
+  try {
+    const res = await fetch('api.php?action=admin_approve_product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: id, status, title, category, price })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Producto procesado.');
+      loadAdminTab('productos'); // reload
+    } else { showToast(data.error); }
+  } catch(e) { showToast('Error'); }
+}
+
+async function adminCloseDispute(id) {
+  try {
+    const res = await fetch('api.php?action=admin_close_dispute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispute_id: id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Disputa cerrada.');
+      loadAdminTab('disputas'); // reload
+    } else { showToast(data.error); }
+  } catch(e) { showToast('Error'); }
+}
+
+async function adminProcessTransfer(id, action_type) {
+  const proof = document.getElementById('admin_proof_'+id) ? document.getElementById('admin_proof_'+id).value : '';
+  if (action_type === 'transferido' && !proof) { showToast('Ingresá el comprobante'); return; }
+
+  try {
+    const res = await fetch('api.php?action=admin_process_transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: id, action_type, proof })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Transferencia procesada.');
+      loadAdminTab('transferencias'); // reload
+    } else { showToast(data.error); }
+  } catch(e) { showToast('Error'); }
+}
+
+async function openDisputePrompt(orderId) {
+    const text = prompt("Por favor, detallá el problema que tuviste con tu compra:");
+    if (!text || text.trim() === "") return;
+
+    try {
+        const res = await fetch('api.php?action=open_dispute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId, text: text.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Reclamo enviado. Nos contactaremos a la brevedad.');
+        } else {
+            showToast(data.error || 'Error enviando reclamo');
+        }
+    } catch(e) {
+        showToast('Error de conexión');
+    }
+}
+
+function controlarCamposDinamicos() {
+    const seleccion = document.getElementById("b_banco").value;
+    const grupoOtroBanco = document.getElementById("grupoOtroBanco");
+    const inputOtroBanco = document.getElementById("nombreOtroBanco");
+    const labelCuenta = document.getElementById("labelCuenta");
+    const ayuda = document.getElementById("ayudaBanco");
+    const grupoTipo = document.getElementById("grupoTipoCuenta");
+    const grupoMoneda = document.getElementById("grupoMoneda");
+
+    if (seleccion === "otro") {
+        grupoOtroBanco.style.display = 'block';
+        inputOtroBanco.setAttribute("required", "required");
+    } else {
+        grupoOtroBanco.style.display = 'none';
+        inputOtroBanco.removeAttribute("required");
+        inputOtroBanco.value = "";
+    }
+
+    let visible = true;
+    switch(seleccion) {
+        case "brou": labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Formato BROU: Incluya Sucursal-Producto-Cuenta o la cuenta larga de 10 dígitos."; break;
+        case "itau": labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Formato Itaú: Generalmente cuenta corriente (7 dígitos) o caja de ahorros (hasta 9 dígitos)."; break;
+        case "santander": labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Formato Santander: Cuenta completa de sucursal + número de cuenta (normalmente de 8 a 10 dígitos)."; break;
+        case "bbva": case "scotiabank": labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Ingrese el número de cuenta sin guiones ni espacios tal como aparece en su home banking."; break;
+        case "midinero": labelCuenta.innerText = "Número de cuenta Mi Dinero:"; ayuda.innerText = "Ingrese los 7 dígitos de su cuenta Mi Dinero (figura en la sección de datos o perfil dentro de la App)."; visible = false; break;
+        case "prex": labelCuenta.innerText = "Número de Cuenta Prex (ID):"; ayuda.innerText = "Ingrese los 6 o 7 dígitos de su cuenta Prex (visible en la app debajo de su nombre)."; visible = false; break;
+        case "mercadopago": labelCuenta.innerText = "Número de cuenta / Celular:"; ayuda.innerText = "Indique el número de cuenta interno o el celular asociado para cobros/envíos directos."; visible = false; break;
+        case "otro": labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Asegúrese de ingresar el número completo incluyendo códigos de sucursal si su banco lo requiere."; break;
+        default: labelCuenta.innerText = "Número de cuenta:"; ayuda.innerText = "Seleccione una opción para ver indicaciones sobre el formato.";
+    }
+
+    if(visible) {
+        grupoTipo.style.display = 'block';
+        grupoMoneda.style.display = 'block';
+    } else {
+        grupoTipo.style.display = 'none';
+        grupoMoneda.style.display = 'none';
+    }
+}
+
+async function guardarDatosBancarios(event) {
+    event.preventDefault();
+    const titular = document.getElementById("b_titular").value;
+    const banco = document.getElementById("b_banco").value;
+    const otroBanco = document.getElementById("nombreOtroBanco").value;
+    const tipo = document.getElementById("b_tipoCuenta").value;
+    const moneda = document.getElementById("b_moneda").value;
+    const cuenta = document.getElementById("b_nroCuenta").value;
+
+    const payload = { titular, banco: banco === 'otro' ? otroBanco : banco, tipo, moneda, cuenta };
+
+    try {
+        const res = await fetch('api.php?action=save_bank_info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            state.user.bank_info = true; // Optimistic update
+            showToast('Datos bancarios guardados con éxito');
+            render();
+        } else {
+            showToast('Error guardando datos');
+        }
+    } catch(e) {
+        showToast('Error de conexión');
+    }
+}
+
+async function addTrackingNumber(orderId) {
+    const trackInput = document.getElementById('track_' + orderId);
+    if (!trackInput || !trackInput.value.trim()) {
+        showToast("Ingresá un número de tracking válido");
+        return;
+    }
+
+    try {
+        const res = await fetch('api.php?action=add_tracking_number', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId, tracking_number: trackInput.value.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Tracking guardado y comprador notificado.');
+            // Reload data
+            profileDataLoaded = false;
+            loadProfileData();
+        } else {
+            showToast('Error guardando tracking');
+        }
+    } catch(e) {
+        showToast('Error de conexión');
+    }
 }
 
 // ============================= ROUTER Y RENDER =============================

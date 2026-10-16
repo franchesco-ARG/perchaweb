@@ -324,11 +324,8 @@ elseif ($action === 'create_preference') {
     $db->exec("INSERT INTO orders (buyer_id, total, shipping_address, status) VALUES ({$user['id']}, $totalFinal, '$address', 'pending')");
     $orderId = $db->lastInsertRowID();
 
-    // Guardamos los items de la orden
-    $resItems = $db->query("SELECT id, price, seller_id FROM products WHERE id IN ($itemsStr)");
-    while($item = $resItems->fetchArray(SQLITE3_ASSOC)){
-        $db->exec("INSERT INTO order_items (order_id, product_id, seller_id, price) VALUES ($orderId, {$item['id']}, {$item['seller_id']}, {$item['price']})");
-    }
+    // Guardamos los items de la orden en una sola query
+    $db->exec("INSERT INTO order_items (order_id, product_id, seller_id, price) SELECT $orderId, id, seller_id, price FROM products WHERE id IN ($itemsStr)");
 
     // --- INTEGRACIÓN C/ MERCADOPAGO ---
     // 👇 ¡PONÉ TU ACCESS TOKEN DE MERCADOPAGO ACÁ! 👇

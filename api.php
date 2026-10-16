@@ -368,7 +368,69 @@ elseif ($action === 'create_preference') {
 elseif ($action === 'confirm_payment') {
     $user = getUserFromCookie($db);
     $data = json_decode(file_get_contents('php://input'), true);
-    $orderId = (int)$data['order_id'];
+    $orderId = 0;
+
+    global $API_KEY_MERCADO_PAGO;
+    $mpAccessToken = $API_KEY_MERCADO_PAGO ?? '';
+    $isApproved = false;
+
+    // Webhook from MercadoPago (e.g., topic=payment or type=payment)
+    if (isset($data['type']) && $data['type'] === 'payment' && isset($data['data']['id']) && !empty($mpAccessToken)) {
+        $paymentId = $data['data']['id'];
+
+        $ch = curl_init("https://api.mercadopago.com/v1/payments/" . $paymentId);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $mpAccessToken
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $paymentInfo = json_decode($response, true);
+
+        if (isset($paymentInfo['status']) && $paymentInfo['status'] === 'approved') {
+            $isApproved = true;
+            $orderId = (int)($paymentInfo['external_reference'] ?? 0);
+        }
+    }
+    // Frontend trigger or dev simulation
+    elseif (isset($data['order_id'])) {
+        $orderId = (int)$data['order_id'];
+
+        if (!empty($mpAccessToken)) {
+            // Verify real payment via API
+            $ch = curl_init("https://api.mercadopago.com/v1/payments/search?external_reference=" . $orderId);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $mpAccessToken
+            ]);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $mpData = json_decode($response, true);
+            if (isset($mpData['results']) && is_array($mpData['results'])) {
+                foreach ($mpData['results'] as $payment) {
+                    if ($payment['status'] === 'approved') {
+                        $isApproved = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // Allow dev simulation only if no API key is set AND running locally
+            // Ensure connection is truly local, not just based on the easily spoofable HTTP_HOST header
+            $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+            $isLocal = in_array($remoteAddr, ['127.0.0.1', '::1']);
+            if ($isLocal) {
+                $isApproved = true;
+            }
+        }
+    }
+
+    if (!$isApproved || $orderId <= 0) {
+        echo json_encode(['success' => false, 'error' => 'Pago no confirmado o no válido.']);
+        exit;
+    }
 
     // Pasamos la orden a pagada
     $db->exec("UPDATE orders SET status = 'paid' WHERE id = $orderId");

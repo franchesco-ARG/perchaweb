@@ -386,10 +386,10 @@ elseif ($action === 'confirm_payment') {
     $purchasedItems = [];
     $sellersToNotify = [];
 
+    // Marcar todos los productos de esta orden como vendidos para que desaparezcan de la web
+    $db->exec("UPDATE products SET status = 'vendido' WHERE id IN (SELECT product_id FROM order_items WHERE order_id = $orderId)");
+
     while($item = $itemsRes->fetchArray(SQLITE3_ASSOC)){
-        // Marcar producto como vendido para que desaparezca de la web
-        $db->exec("UPDATE products SET status = 'vendido' WHERE id = {$item['product_id']}");
-        
         $purchasedItems[] = $item['title'];
         
         // Agrupar por vendedor para el mail

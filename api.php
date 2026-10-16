@@ -226,7 +226,7 @@ elseif ($action === 'add_product') {
 
     $photosStr = $db->escapeString(implode(',', $uploadedFiles));
     
-    // Escapar todos los textos para que no rompan la Base de Datos
+    // Escapar los textos para que no rompan la Base de Datos
     $title = $db->escapeString($_POST['title']);
     $category = $db->escapeString($_POST['category']);
     $brand = $db->escapeString($_POST['brand']);

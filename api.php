@@ -206,6 +206,12 @@ elseif ($action === 'logout') {
 // 4. ENDPOINTS DE PRODUCTOS
 // ============================================================================
 elseif ($action === 'add_product') {
+    $user = getUserFromCookie($db);
+    if (!$user) {
+        echo json_encode(['success' => false, 'error' => 'No autorizado. Tenés que iniciar sesión.']);
+        exit;
+    }
+
     // Procesar fotos reales
     $uploadedFiles = [];
     $uploadDir = __DIR__ . '/uploads/';

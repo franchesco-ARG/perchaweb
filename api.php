@@ -216,10 +216,21 @@ elseif ($action === 'add_product') {
 
     // Subimos todas las fotos y guardamos los nombres en un array
     if (!empty($_FILES['photos']['name'][0])) {
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
         foreach ($_FILES['photos']['tmp_name'] as $key => $tmpName) {
-            $fileName = time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "", basename($_FILES['photos']['name'][$key]));
-            if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
-                $uploadedFiles[] = $fileName;
+            if (!is_uploaded_file($tmpName)) continue;
+
+            $originalName = $_FILES['photos']['name'][$key];
+            $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            $mime = @mime_content_type($tmpName);
+
+            if (in_array($ext, $allowedExts) && in_array($mime, $allowedMimes)) {
+                $fileName = time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "", basename($originalName));
+                if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                    $uploadedFiles[] = $fileName;
+                }
             }
         }
     }

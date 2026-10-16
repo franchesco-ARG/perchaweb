@@ -331,8 +331,7 @@ elseif ($action === 'create_preference') {
     }
 
     // --- INTEGRACIÓN C/ MERCADOPAGO ---
-    // 👇 ¡PONÉ TU ACCESS TOKEN DE MERCADOPAGO ACÁ! 👇
-    $mpAccessToken = ''; 
+    $mpAccessToken = $API_KEY_MERCADO_PAGO;
     
     $prefData = [
         "items" => [

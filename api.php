@@ -355,7 +355,6 @@ elseif ($action === 'create_preference') {
         'Content-Type: application/json'
     ]);
 
-    //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $response = curl_exec($ch);
     $mpResult = json_decode($response, true);
     curl_close($ch);

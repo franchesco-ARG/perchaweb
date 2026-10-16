@@ -31,6 +31,7 @@ if ($top4_html !== "") {
     $top4_html = "<h3>Los 4 artículos más vistos del sitio:</h3><ul>$top4_html</ul>";
 }
 
+$recCache = [];
 while ($user = $resUsers->fetchArray(SQLITE3_ASSOC)) {
     $user_id = $user['id'];
 
@@ -50,9 +51,17 @@ while ($user = $resUsers->fetchArray(SQLITE3_ASSOC)) {
         $brand = $db->escapeString($view['brand']);
         $size = $db->escapeString($view['size']);
 
-        $recQuery = "SELECT id, title, price FROM products WHERE status = 'publicado' AND category = '$cat' AND (brand = '$brand' OR size = '$size') ORDER BY RANDOM() LIMIT 2";
-        $recRes = $db->query($recQuery);
-        while ($rec = $recRes->fetchArray(SQLITE3_ASSOC)) {
+        $cacheKey = "$cat|$brand|$size";
+        if (!isset($recCache[$cacheKey])) {
+            $recQuery = "SELECT id, title, price FROM products WHERE status = 'publicado' AND category = '$cat' AND (brand = '$brand' OR size = '$size') ORDER BY RANDOM() LIMIT 2";
+            $recRes = $db->query($recQuery);
+            $recCache[$cacheKey] = [];
+            while ($rec = $recRes->fetchArray(SQLITE3_ASSOC)) {
+                $recCache[$cacheKey][] = $rec;
+            }
+        }
+
+        foreach ($recCache[$cacheKey] as $rec) {
             $recommendations_html .= "<li>{$rec['title']} - {$rec['price']} UYU</li>";
         }
     }

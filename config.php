@@ -1,6 +1,9 @@
 <?php
 // config.php
 
+// Base URL for the application (prevent Host Header Injection)
+$BASE_URL = "http://localhost:8000";
+
 // API Keys
 $API_KEY_GOOGLE_MAPS = "";
 $API_KEY_MERCADO_PAGO = "";

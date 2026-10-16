@@ -150,7 +150,8 @@ elseif ($action === 'login') {
         if ($user) {
             $reset_token = bin2hex(random_bytes(16));
             $db->exec("UPDATE users SET password_reset_token = '$reset_token' WHERE id = " . $user['id']);
-            $magic_link = "http://" . $_SERVER['HTTP_HOST'] . "/api.php?action=magic_login&token=$reset_token";
+            global $BASE_URL;
+            $magic_link = rtrim($BASE_URL, '/') . "/api.php?action=magic_login&token=$reset_token";
             send_email_smtp($email, "Tu link de ingreso a Perchero", "Hacé click para ingresar: <a href='$magic_link'>Ingresar o recuperar password</a>");
             echo json_encode(['success' => true, 'message' => 'Se envió un email con el link para ingresar.']);
         } else {
@@ -692,7 +693,8 @@ elseif ($action === 'admin_process_transfer') {
     } elseif ($action_type === 'error') {
         $bank_info = $order['bank_info'];
         $subject = "Número de venta $order_id, error transferencia banco";
-        $body = "Hubo un error al transferir a su cuenta bancaria. Los datos ingresados fueron: $bank_info.<br>Por favor, ingrese a <a href='http://{$_SERVER['HTTP_HOST']}/#/perfil'>Mis Ventas</a> para cargar nuevamente sus datos.";
+        global $BASE_URL;
+        $body = "Hubo un error al transferir a su cuenta bancaria. Los datos ingresados fueron: $bank_info.<br>Por favor, ingrese a <a href='" . rtrim($BASE_URL, '/') . "/#/perfil'>Mis Ventas</a> para cargar nuevamente sus datos.";
         send_email_smtp($order['seller_email'], $subject, $body, "From: info@perchero.store\r\nCc: info@perchero.store\r\nContent-Type: text/html; charset=UTF-8\r\n");
 
         // Clear bank info

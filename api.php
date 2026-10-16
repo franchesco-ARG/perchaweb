@@ -456,7 +456,13 @@ elseif ($action === 'add_tracking_number') {
     $order_id = (int)$data['order_id'];
     $tracking_number = $db->escapeString($data['tracking_number']);
 
-    // Verify user is seller of this order (simplify for now, assuming valid request)
+    // Verify user is seller of this order
+    $isSeller = $db->querySingle("SELECT COUNT(*) FROM order_items WHERE order_id = $order_id AND seller_id = {$user['id']}");
+    if (!$isSeller) {
+        echo json_encode(['success' => false, 'error' => 'No autorizado para modificar este pedido']);
+        exit;
+    }
+
     $db->exec("UPDATE orders SET tracking_number = '$tracking_number', status = 'shipped', shipped_at = CURRENT_TIMESTAMP WHERE id = $order_id");
 
     // Get buyer email and order info

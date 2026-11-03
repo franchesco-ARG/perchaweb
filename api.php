@@ -197,6 +197,11 @@ elseif ($action === 'me') {
     }
 }
 elseif ($action === 'logout') {
+    $user = getUserFromCookie($db);
+    if ($user) {
+        $id = (int)$user['id'];
+        $db->exec("UPDATE users SET token = NULL WHERE id = $id");
+    }
     // Matamos la cookie
     setcookie('perchero_session', '', time() - 3600, "/");
     echo json_encode(['success' => true]);

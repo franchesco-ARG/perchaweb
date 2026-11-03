@@ -31,21 +31,51 @@ if ($top4_html !== "") {
     $top4_html = "<h3>Los 4 artículos más vistos del sitio:</h3><ul>$top4_html</ul>";
 }
 
-$recCache = [];
+$users = [];
 while ($user = $resUsers->fetchArray(SQLITE3_ASSOC)) {
-    $user_id = $user['id'];
+    $users[] = $user;
+}
+
+$recCache = [];
+$chunks = array_chunk($users, 500);
+
+foreach ($chunks as $chunk) {
+    $userIds = array_column($chunk, 'id');
+    if (empty($userIds)) {
+        continue;
+    }
+    $userIdsStr = implode(',', $userIds);
 
     // Find categories, brands, and sizes the user most viewed
-    $queryViews = "SELECT p.category, p.brand, p.size, COUNT(pv.id) as view_count
-                   FROM product_views pv
-                   JOIN products p ON pv.product_id = p.id
-                   WHERE pv.user_id = $user_id AND p.status = 'publicado'
-                   GROUP BY p.category, p.brand, p.size
-                   ORDER BY view_count DESC LIMIT 3";
+    $queryViews = "
+        WITH user_views AS (
+            SELECT pv.user_id, p.category, p.brand, p.size, COUNT(pv.id) as view_count
+            FROM product_views pv
+            JOIN products p ON pv.product_id = p.id
+            WHERE pv.user_id IN ($userIdsStr) AND p.status = 'publicado'
+            GROUP BY pv.user_id, p.category, p.brand, p.size
+        ),
+        ranked_views AS (
+            SELECT user_id, category, brand, size, view_count,
+                   ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY view_count DESC) as rn
+            FROM user_views
+        )
+        SELECT user_id, category, brand, size, view_count
+        FROM ranked_views
+        WHERE rn <= 3
+    ";
     $resViews = $db->query($queryViews);
-
-    $recommendations_html = "";
+    $userViewsMap = [];
     while ($view = $resViews->fetchArray(SQLITE3_ASSOC)) {
+        $userViewsMap[$view['user_id']][] = $view;
+    }
+
+    foreach ($chunk as $user) {
+        $user_id = $user['id'];
+        $recommendations_html = "";
+
+        $viewsForUser = isset($userViewsMap[$user_id]) ? $userViewsMap[$user_id] : [];
+        foreach ($viewsForUser as $view) {
         // Recommend items based on this preference
         $cat = $db->escapeString($view['category']);
         $brand = $db->escapeString($view['brand']);
@@ -66,19 +96,20 @@ while ($user = $resUsers->fetchArray(SQLITE3_ASSOC)) {
         }
     }
 
-    if ($recommendations_html !== "") {
-        $recommendations_html = "<h3>Recomendaciones basadas en tus búsquedas:</h3><ul>$recommendations_html</ul>";
-    }
+        if ($recommendations_html !== "") {
+            $recommendations_html = "<h3>Recomendaciones basadas en tus búsquedas:</h3><ul>$recommendations_html</ul>";
+        }
 
-    // Send email
-    if ($recommendations_html !== "" || $top4_html !== "") {
-        $subject = "¡Te extrañamos en Perchero, " . $user['name'] . "!";
-        $body = "<h2>¡Volvé a ver qué hay de nuevo!</h2>";
-        $body .= $recommendations_html;
-        $body .= $top4_html;
-        $body .= "<br><p>Visitanos en <a href='http://" . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'perchero.store') . "'>Perchero</a></p>";
+        // Send email
+        if ($recommendations_html !== "" || $top4_html !== "") {
+            $subject = "¡Te extrañamos en Perchero, " . $user['name'] . "!";
+            $body = "<h2>¡Volvé a ver qué hay de nuevo!</h2>";
+            $body .= $recommendations_html;
+            $body .= $top4_html;
+            $body .= "<br><p>Visitanos en <a href='http://" . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'perchero.store') . "'>Perchero</a></p>";
 
-        send_email_smtp($user['email'], $subject, $body, "From: info@perchero.store\r\nContent-Type: text/html; charset=UTF-8\r\n");
+            send_email_smtp($user['email'], $subject, $body, "From: info@perchero.store\r\nContent-Type: text/html; charset=UTF-8\r\n");
+        }
     }
 }
 

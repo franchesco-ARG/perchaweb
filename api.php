@@ -553,8 +553,18 @@ elseif ($action === 'open_dispute') {
         // Notify admin
         $days_passed = floor((time() - strtotime($order['created_at'])) / (60 * 60 * 24));
         $sellerInfo = $db->querySingle("SELECT name, email FROM users WHERE id = $seller_id", true);
-        $subject = "Disputa " . date('Y-m-d') . " numero de pedido " . $order_id;
-        $body = "Comprador: {$user['name']} ({$user['email']})<br>Vendedor: {$sellerInfo['name']} ({$sellerInfo['email']})<br>Fecha compra: {$order['created_at']}<br>Días pasados: $days_passed<br>Tracking: {$order['tracking_number']}<br><br>Reclamo:<br>$text";
+        $safe_order_id = htmlspecialchars($order_id ?? '', ENT_QUOTES, 'UTF-8');
+        $subject = "Disputa " . date('Y-m-d') . " numero de pedido " . $safe_order_id;
+
+        $safe_buyer_name = htmlspecialchars($user['name'] ?? '', ENT_QUOTES, 'UTF-8');
+        $safe_buyer_email = htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8');
+        $safe_seller_name = htmlspecialchars($sellerInfo['name'] ?? '', ENT_QUOTES, 'UTF-8');
+        $safe_seller_email = htmlspecialchars($sellerInfo['email'] ?? '', ENT_QUOTES, 'UTF-8');
+        $safe_tracking = htmlspecialchars($order['tracking_number'] ?? '', ENT_QUOTES, 'UTF-8');
+        // Retrieve the raw text before it was SQL escaped for the email
+        $safe_text = nl2br(htmlspecialchars($data['text'] ?? '', ENT_QUOTES, 'UTF-8'));
+
+        $body = "Comprador: {$safe_buyer_name} ({$safe_buyer_email})<br>Vendedor: {$safe_seller_name} ({$safe_seller_email})<br>Fecha compra: {$order['created_at']}<br>Días pasados: $days_passed<br>Tracking: {$safe_tracking}<br><br>Reclamo:<br>{$safe_text}";
         send_email_smtp('info@perchero.store', $subject, $body);
 
         echo json_encode(['success' => true]);

@@ -643,17 +643,26 @@ elseif ($action === 'admin_approve_product') {
     verifyAdmin($db);
     $data = json_decode(file_get_contents('php://input'), true);
     $product_id = (int)$data['product_id'];
-    $status = $db->escapeString($data['status']); // 'publicado' or 'rechazado'
+    $status = $data['status']; // 'publicado' or 'rechazado'
 
     // Allow updating other fields as requested "deja editar cualquier campo" (simplified here to just status for brevity, frontend will send full object)
     if (isset($data['title'])) {
-        $title = $db->escapeString($data['title']);
-        $category = $db->escapeString($data['category']);
+        $title = $data['title'];
+        $category = $data['category'];
         $price = (float)$data['price'];
-        $db->exec("UPDATE products SET title = '$title', category = '$category', price = $price WHERE id = $product_id");
+
+        $stmt = $db->prepare("UPDATE products SET title = :title, category = :category, price = :price WHERE id = :id");
+        $stmt->bindValue(':title', $title, SQLITE3_TEXT);
+        $stmt->bindValue(':category', $category, SQLITE3_TEXT);
+        $stmt->bindValue(':price', $price, SQLITE3_FLOAT);
+        $stmt->bindValue(':id', $product_id, SQLITE3_INTEGER);
+        $stmt->execute();
     }
 
-    $db->exec("UPDATE products SET status = '$status' WHERE id = $product_id");
+    $stmtStatus = $db->prepare("UPDATE products SET status = :status WHERE id = :id");
+    $stmtStatus->bindValue(':status', $status, SQLITE3_TEXT);
+    $stmtStatus->bindValue(':id', $product_id, SQLITE3_INTEGER);
+    $stmtStatus->execute();
     echo json_encode(['success' => true]);
 }
 elseif ($action === 'admin_get_disputes') {

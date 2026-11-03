@@ -477,7 +477,9 @@ elseif ($action === 'confirm_payment') {
                  <p>El pedido será enviado a la dirección: <strong>$address</strong></p>
                  <p>¡Gracias por darle una segunda vida a esta ropa!</p>";
     
-    @mail($buyerEmail, "Confirmación de tu compra en Perchero", $buyerMsg, $headers);
+    if (!mail($buyerEmail, "Confirmación de tu compra en Perchero", $buyerMsg, $headers)) {
+        error_log("Failed to send purchase confirmation email to buyer: $buyerEmail");
+    }
 
     // 2. Mails a los vendedores correspondientes
     foreach($sellersToNotify as $seller){
@@ -489,7 +491,9 @@ elseif ($action === 'confirm_payment') {
                       <p style='padding:10px; background:#f4f1ea; border:1px solid #211c1b;'>$address</p>
                       <p>¡Felicitaciones por la venta!</p>";
         
-        @mail($seller['email'], "¡Vendiste una prenda en Perchero!", $sellerMsg, $headers);
+        if (!mail($seller['email'], "¡Vendiste una prenda en Perchero!", $sellerMsg, $headers)) {
+            error_log("Failed to send sale notification email to seller: {$seller['email']}");
+        }
     }
 
     echo json_encode(['success' => true]);

@@ -100,7 +100,6 @@ function getUserFromCookie($db) {
         $res = $db->query("SELECT * FROM users WHERE token = '$token'");
         return $res->fetchArray(SQLITE3_ASSOC);
     }
-    return null;
 }
 
 $action = $_GET['action'] ?? '';

@@ -1052,112 +1052,129 @@ function renderProfileTabContent(mine) {
 }
 
 let adminDataCache = {};
+
+async function loadAdminProductsTab(content) {
+  const res = await fetch('api.php?action=admin_get_pending_products');
+  const data = await res.json();
+  if (!data.success) { content.innerHTML = data.error; return; }
+
+  content.innerHTML = `<h3>Publicaciones para Aprobar (${data.products.length})</h3>
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      ${data.products.map(p => `
+        <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px; display:flex; gap:15px;">
+          <div style="width:60px; height:80px; flex-shrink:0;">${renderVisual(p, 0)}</div>
+          <div style="flex:1;">
+            <input type="text" id="admin_p_title_${p.id}" value="${esc(p.title)}" style="width:100%; margin-bottom:5px;">
+            <div style="display:flex; gap:10px; margin-bottom:5px;">
+              <input type="text" id="admin_p_cat_${p.id}" value="${esc(p.category)}" style="width:100px;">
+              <input type="number" id="admin_p_price_${p.id}" value="${p.price}" style="width:100px;">
+            </div>
+            <div style="font-size:12px; color:gray;">Vendedor: ${esc(p.seller_name)}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:5px; justify-content:center;">
+            <button class="btn btn-solid" style="padding:5px 10px; font-size:12px;" onclick="adminProcessProduct(${p.id}, 'publicado')">Aprobar</button>
+            <button class="btn btn-ghost" style="padding:5px 10px; font-size:12px; color:var(--cherry);" onclick="adminProcessProduct(${p.id}, 'rechazado')">Rechazar</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+async function loadAdminDisputesTab(content) {
+  const res = await fetch('api.php?action=admin_get_disputes');
+  const data = await res.json();
+  if (!data.success) { content.innerHTML = data.error; return; }
+
+  content.innerHTML = `<h3>Disputas Abiertas (${data.disputes.length})</h3>
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      ${data.disputes.map(d => `
+        <div style="border:1px solid var(--cherry); padding:10px; background:#fff; border-radius:4px;">
+          <div style="font-weight:bold;">Orden #${d.order_id} - Total: ${fmt(d.total)}</div>
+          <div style="font-size:12px; margin-bottom:5px;">Comprador: ${esc(d.buyer_name)} (${esc(d.buyer_email)}) | Fecha: ${d.order_date} | Días: ${d.days_passed}</div>
+          <div style="font-size:12px; margin-bottom:10px;">Tracking: ${esc(d.tracking_number || 'N/A')}</div>
+          <div style="background:#f9f9f9; padding:8px; border-left:3px solid var(--cherry); margin-bottom:10px; font-size:13px;">${esc(d.text)}</div>
+          <button class="btn btn-solid" style="padding:5px 15px; font-size:12px;" onclick="adminCloseDispute(${d.id})">Cerrar Disputa</button>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+async function loadAdminTransfersTab(content) {
+  const res = await fetch('api.php?action=admin_get_transfers');
+  const data = await res.json();
+  if (!data.success) { content.innerHTML = data.error; return; }
+
+  content.innerHTML = `<h3>Ventas para Transferir (>90 días) (${data.transfers.length})</h3>
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      ${data.transfers.map(t => `
+        <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px;">
+          <div style="font-weight:bold; margin-bottom:5px;">Venta #${t.id} - ${fmt(t.total)}</div>
+          <div style="font-size:12px; margin-bottom:5px;">Vendedor: ${esc(t.seller_name)} (${esc(t.seller_email)})</div>
+          <div style="font-size:12px; background:#eee; padding:5px; margin-bottom:10px; border-radius:3px;">
+            <strong>Banco:</strong> ${t.bank_info ? `${esc(t.bank_info.banco)} - ${esc(t.bank_info.tipo)} en ${esc(t.bank_info.moneda)}<br>Cuenta: ${esc(t.bank_info.cuenta)}<br>Titular: ${esc(t.bank_info.titular)}` : 'Sin datos'}
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="admin_proof_${t.id}" placeholder="Link o Nro de Comprobante" style="flex:1; padding:5px;">
+            <button class="btn btn-solid" style="padding:5px 15px; font-size:12px; background:var(--moss); border-color:var(--moss);" onclick="adminProcessTransfer(${t.id}, 'transferido')">Transferido</button>
+            <button class="btn btn-ghost" style="padding:5px 15px; font-size:12px; color:var(--cherry);" onclick="adminProcessTransfer(${t.id}, 'error')">Error transferencia</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+async function loadAdminStatsTab(content) {
+  const res = await fetch('api.php?action=admin_get_stats');
+  const data = await res.json();
+  if (!data.success) { content.innerHTML = data.error; return; }
+  const s = data.stats;
+
+  content.innerHTML = `<h3>Estadísticas Generales</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+      <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
+        <div style="font-size:24px; font-weight:bold;">${s.users}</div>
+        <div style="font-size:12px; text-transform:uppercase;">Usuarios Registrados</div>
+      </div>
+      <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
+        <div style="font-size:24px; font-weight:bold;">${s.views_today}</div>
+        <div style="font-size:12px; text-transform:uppercase;">Visitas de Productos Hoy</div>
+      </div>
+    </div>
+
+    <h4>Estado de Ventas</h4>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; text-align:center; font-size:13px;">
+      <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.sales_total}</strong><br>Ventas Totales</div>
+      <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.in_transit}</strong><br>En Tránsito</div>
+      <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.completed}</strong><br>Completadas (Pagadas)</div>
+    </div>
+
+    <h4>Ventas por Período</h4>
+    <ul style="font-size:14px; margin-bottom:20px;">
+      <li>Hoy: <strong>${s.sales_today}</strong></li>
+      <li>Este Mes: <strong>${s.sales_month}</strong></li>
+      <li>Este Año: <strong>${s.sales_year}</strong></li>
+    </ul>
+
+    <h4>Top 10 Artículos Más Visitados</h4>
+    <div style="font-size:13px;">
+      ${s.top_trend.map((t, i) => `<div style="padding:5px 0; border-bottom:1px solid #eee;">${i+1}. <strong>${esc(t.title)}</strong> - ${t.views} vistas</div>`).join('')}
+    </div>
+  `;
+}
+
 async function loadAdminTab(tab) {
   const content = document.getElementById('admin_content');
   content.innerHTML = 'Cargando...';
 
   try {
     if (tab === 'productos') {
-      const res = await fetch('api.php?action=admin_get_pending_products');
-      const data = await res.json();
-      if (!data.success) { content.innerHTML = data.error; return; }
-
-      content.innerHTML = `<h3>Publicaciones para Aprobar (${data.products.length})</h3>
-        <div style="display:flex; flex-direction:column; gap:15px;">
-          ${data.products.map(p => `
-            <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px; display:flex; gap:15px;">
-              <div style="width:60px; height:80px; flex-shrink:0;">${renderVisual(p, 0)}</div>
-              <div style="flex:1;">
-                <input type="text" id="admin_p_title_${p.id}" value="${esc(p.title)}" style="width:100%; margin-bottom:5px;">
-                <div style="display:flex; gap:10px; margin-bottom:5px;">
-                  <input type="text" id="admin_p_cat_${p.id}" value="${esc(p.category)}" style="width:100px;">
-                  <input type="number" id="admin_p_price_${p.id}" value="${p.price}" style="width:100px;">
-                </div>
-                <div style="font-size:12px; color:gray;">Vendedor: ${esc(p.seller_name)}</div>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:5px; justify-content:center;">
-                <button class="btn btn-solid" style="padding:5px 10px; font-size:12px;" onclick="adminProcessProduct(${p.id}, 'publicado')">Aprobar</button>
-                <button class="btn btn-ghost" style="padding:5px 10px; font-size:12px; color:var(--cherry);" onclick="adminProcessProduct(${p.id}, 'rechazado')">Rechazar</button>
-              </div>
-            </div>
-          `).join('')}
-        </div>`;
+      await loadAdminProductsTab(content);
     } else if (tab === 'disputas') {
-      const res = await fetch('api.php?action=admin_get_disputes');
-      const data = await res.json();
-      if (!data.success) { content.innerHTML = data.error; return; }
-
-      content.innerHTML = `<h3>Disputas Abiertas (${data.disputes.length})</h3>
-        <div style="display:flex; flex-direction:column; gap:15px;">
-          ${data.disputes.map(d => `
-            <div style="border:1px solid var(--cherry); padding:10px; background:#fff; border-radius:4px;">
-              <div style="font-weight:bold;">Orden #${d.order_id} - Total: ${fmt(d.total)}</div>
-              <div style="font-size:12px; margin-bottom:5px;">Comprador: ${esc(d.buyer_name)} (${esc(d.buyer_email)}) | Fecha: ${d.order_date} | Días: ${d.days_passed}</div>
-              <div style="font-size:12px; margin-bottom:10px;">Tracking: ${esc(d.tracking_number || 'N/A')}</div>
-              <div style="background:#f9f9f9; padding:8px; border-left:3px solid var(--cherry); margin-bottom:10px; font-size:13px;">${esc(d.text)}</div>
-              <button class="btn btn-solid" style="padding:5px 15px; font-size:12px;" onclick="adminCloseDispute(${d.id})">Cerrar Disputa</button>
-            </div>
-          `).join('')}
-        </div>`;
+      await loadAdminDisputesTab(content);
     } else if (tab === 'transferencias') {
-      const res = await fetch('api.php?action=admin_get_transfers');
-      const data = await res.json();
-      if (!data.success) { content.innerHTML = data.error; return; }
-
-      content.innerHTML = `<h3>Ventas para Transferir (>90 días) (${data.transfers.length})</h3>
-        <div style="display:flex; flex-direction:column; gap:15px;">
-          ${data.transfers.map(t => `
-            <div style="border:1px solid var(--line); padding:10px; background:#fff; border-radius:4px;">
-              <div style="font-weight:bold; margin-bottom:5px;">Venta #${t.id} - ${fmt(t.total)}</div>
-              <div style="font-size:12px; margin-bottom:5px;">Vendedor: ${esc(t.seller_name)} (${esc(t.seller_email)})</div>
-              <div style="font-size:12px; background:#eee; padding:5px; margin-bottom:10px; border-radius:3px;">
-                <strong>Banco:</strong> ${t.bank_info ? `${esc(t.bank_info.banco)} - ${esc(t.bank_info.tipo)} en ${esc(t.bank_info.moneda)}<br>Cuenta: ${esc(t.bank_info.cuenta)}<br>Titular: ${esc(t.bank_info.titular)}` : 'Sin datos'}
-              </div>
-              <div style="display:flex; gap:10px; align-items:center;">
-                <input type="text" id="admin_proof_${t.id}" placeholder="Link o Nro de Comprobante" style="flex:1; padding:5px;">
-                <button class="btn btn-solid" style="padding:5px 15px; font-size:12px; background:var(--moss); border-color:var(--moss);" onclick="adminProcessTransfer(${t.id}, 'transferido')">Transferido</button>
-                <button class="btn btn-ghost" style="padding:5px 15px; font-size:12px; color:var(--cherry);" onclick="adminProcessTransfer(${t.id}, 'error')">Error transferencia</button>
-              </div>
-            </div>
-          `).join('')}
-        </div>`;
+      await loadAdminTransfersTab(content);
     } else if (tab === 'stats') {
-      const res = await fetch('api.php?action=admin_get_stats');
-      const data = await res.json();
-      if (!data.success) { content.innerHTML = data.error; return; }
-      const s = data.stats;
-
-      content.innerHTML = `<h3>Estadísticas Generales</h3>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
-          <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
-            <div style="font-size:24px; font-weight:bold;">${s.users}</div>
-            <div style="font-size:12px; text-transform:uppercase;">Usuarios Registrados</div>
-          </div>
-          <div style="background:#f0f0f0; padding:15px; border-radius:5px; text-align:center;">
-            <div style="font-size:24px; font-weight:bold;">${s.views_today}</div>
-            <div style="font-size:12px; text-transform:uppercase;">Visitas de Productos Hoy</div>
-          </div>
-        </div>
-
-        <h4>Estado de Ventas</h4>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; text-align:center; font-size:13px;">
-          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.sales_total}</strong><br>Ventas Totales</div>
-          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.in_transit}</strong><br>En Tránsito</div>
-          <div style="border:1px solid var(--line); padding:10px; border-radius:4px;"><strong>${s.completed}</strong><br>Completadas (Pagadas)</div>
-        </div>
-
-        <h4>Ventas por Período</h4>
-        <ul style="font-size:14px; margin-bottom:20px;">
-          <li>Hoy: <strong>${s.sales_today}</strong></li>
-          <li>Este Mes: <strong>${s.sales_month}</strong></li>
-          <li>Este Año: <strong>${s.sales_year}</strong></li>
-        </ul>
-
-        <h4>Top 10 Artículos Más Visitados</h4>
-        <div style="font-size:13px;">
-          ${s.top_trend.map((t, i) => `<div style="padding:5px 0; border-bottom:1px solid #eee;">${i+1}. <strong>${esc(t.title)}</strong> - ${t.views} vistas</div>`).join('')}
-        </div>
-      `;
+      await loadAdminStatsTab(content);
     }
   } catch(e) {
     content.innerHTML = 'Error cargando datos.';

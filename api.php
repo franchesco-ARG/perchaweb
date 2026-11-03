@@ -443,10 +443,10 @@ elseif ($action === 'confirm_payment') {
     
     $purchasedItems = [];
     $sellersToNotify = [];
+    $productIds = [];
 
     while($item = $itemsRes->fetchArray(SQLITE3_ASSOC)){
-        // Marcar producto como vendido para que desaparezca de la web
-        $db->exec("UPDATE products SET status = 'vendido' WHERE id = {$item['product_id']}");
+        $productIds[] = $item['product_id'];
         
         $purchasedItems[] = $item['title'];
         
@@ -460,6 +460,12 @@ elseif ($action === 'confirm_payment') {
             ];
         }
         $sellersToNotify[$sellerId]['items'][] = $item['title'];
+    }
+
+    // Marcar productos como vendidos para que desaparezcan de la web
+    if (!empty($productIds)) {
+        $idsList = implode(',', array_map('intval', $productIds));
+        $db->exec("UPDATE products SET status = 'vendido' WHERE id IN ($idsList)");
     }
 
     // --- ENVÍO DE MAILS AUTOMÁTICOS ---

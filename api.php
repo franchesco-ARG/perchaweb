@@ -91,7 +91,13 @@ $db->exec("CREATE TABLE IF NOT EXISTS order_items (
 // ============================================================================
 function setPersistentCookie($token) {
     // La cookie dura 10 años (básicamente no expira)
-    setcookie('perchero_session', $token, time() + (10 * 365 * 24 * 60 * 60), "/");
+    setcookie('perchero_session', $token, [
+        'expires' => time() + (10 * 365 * 24 * 60 * 60),
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
 }
 
 function getUserFromCookie($db) {
@@ -198,7 +204,13 @@ elseif ($action === 'me') {
 }
 elseif ($action === 'logout') {
     // Matamos la cookie
-    setcookie('perchero_session', '', time() - 3600, "/");
+    setcookie('perchero_session', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     echo json_encode(['success' => true]);
 }
 

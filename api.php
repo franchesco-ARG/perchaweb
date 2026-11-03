@@ -9,6 +9,10 @@ $dbDir = __DIR__ . '/db';
 if (!is_dir($dbDir)) {
     mkdir($dbDir, 0777, true);
 }
+$htaccessFile = $dbDir . '/.htaccess';
+if (!file_exists($htaccessFile)) {
+    file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\nRequire all denied\n");
+}
 $dbFile = $dbDir . '/perchero.db';
 $db = new SQLite3($dbFile);
 
